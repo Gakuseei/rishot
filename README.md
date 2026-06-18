@@ -1,10 +1,12 @@
 # rishot
 
-A Wayland screenshot and annotation overlay built on [Quickshell](https://quickshell.outfoxxed.me/). You drag a region (or click a window or monitor), annotate it, and copy, save, or upload the result. rishot grew out of the screenshot surface of the [Ricelin](https://github.com/Gakuseei/Ricelin) Hyprland rice and is being pulled out into a standalone tool.
+A screenshot and annotation overlay for Wayland, built on [Quickshell](https://quickshell.outfoxxed.me/). Drag a region, click a window, or grab a whole monitor, mark it up, then copy, save, or upload it. rishot started as the screenshot surface inside my Hyprland rice, [Ricelin](https://github.com/Gakuseei/Ricelin), and now runs on its own.
+
+![rishot in action](assets/demo.png)
 
 ## Compositor support
 
-Capture works on any wlroots or Wayland compositor that implements `wlr-screencopy` or `ext-image-copy-capture`. Region selection, monitor selection, and the full annotation toolset work everywhere capture does. Window-click selection (click a single window to grab just its frame) needs a per-compositor window query, and rishot only ships one for Hyprland (`hyprctl`), Sway (`swaymsg`) and Niri (`niri msg`). On any other compositor it degrades to region and monitor selection.
+Capture works on any wlroots or Wayland compositor that speaks `wlr-screencopy` or `ext-image-copy-capture`. Wherever capture works, so do region selection, monitor selection, and every annotation tool. Window-click selection (click one window to grab just its frame) needs a per-compositor query, and rishot ships those for Hyprland, Sway, and Niri. Everywhere else it falls back to region and monitor selection.
 
 | Compositor | Capture | Region + monitor | Window-click |
 | ---------- | ------- | ---------------- | ------------ |
@@ -15,7 +17,18 @@ Capture works on any wlroots or Wayland compositor that implements `wlr-screenco
 | COSMIC     | yes     | yes              | no (region + monitor only) |
 | river      | yes     | yes              | no (region + monitor only) |
 
-Other wlroots compositors fall into the river row: capture plus region and monitor, no window-click.
+Any other wlroots compositor lands in the river row: capture plus region and monitor, no window-click.
+
+## Features
+
+- Region, window, and monitor capture
+- Resize the selection after capture with corner and edge handles
+- Tools: rectangle, ellipse, line, arrow, pen, highlighter, text, numbered steps, blur, pixelate
+- Undo and redo
+- Copy to clipboard, save to disk, or upload
+- A settings panel for pixelate block size, blur strength, and rebinding the key on Hyprland
+
+![Toolbar and tools](assets/toolbar.png)
 
 ## Install
 
@@ -31,7 +44,7 @@ yay -S rishot-git
 curl -fsSL https://raw.githubusercontent.com/Gakuseei/rishot/main/install.sh | sh
 ```
 
-Read the script before piping it to a shell. The download-inspect-run path:
+Read the script before you pipe it into a shell. To download, inspect, then run:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Gakuseei/rishot/main/install.sh -o install.sh
@@ -39,7 +52,7 @@ less install.sh
 sh install.sh
 ```
 
-The installer pulls runtime deps via your package manager where it can (pacman/yay/paru, apt, dnf, zypper, xbps; nix is detected but left for you to handle), drops rishot into `~/.local/share/rishot`, and symlinks the launcher into `~/.local/bin`. It never edits your compositor config; it prints the keybind line for you to add. quickshell is in the official repos on Arch (extra), recent Fedora (44+), Void, and Debian sid / Ubuntu 26.10. On older Fedora it comes from the COPR `errornointernet/quickshell`, which a Qt version mismatch can occasionally break.
+The installer pulls runtime deps through your package manager where it can (pacman/yay/paru, apt, dnf, zypper, xbps; nix is detected but left to you), drops rishot into `~/.local/share/rishot`, and symlinks the launcher into `~/.local/bin`. It never touches your compositor config. It prints the keybind line for you to add. quickshell is in the official repos on Arch (extra), Fedora 44+, Void, and Debian sid / Ubuntu 26.10. On older Fedora it comes from the `errornointernet/quickshell` COPR, which a Qt version mismatch can sometimes break.
 
 ### Manual
 
@@ -49,7 +62,7 @@ cd rishot
 bin/rishot
 ```
 
-`bin/rishot` finds its config dir from `$RISHOT_CONFIG_DIR`, then `~/.local/share/rishot/src`, `/usr/share/rishot/src`, `/usr/lib/rishot/src`, then `../src` next to the binary. So you can also drop `src/` at any of those prefixes and put `rishot` on PATH.
+`bin/rishot` looks for its config dir in `$RISHOT_CONFIG_DIR`, then `~/.local/share/rishot/src`, `/usr/share/rishot/src`, `/usr/lib/rishot/src`, then `../src` next to the binary. Drop `src/` at any of those and put `rishot` on PATH.
 
 ## Dependencies
 
@@ -57,14 +70,14 @@ Required:
 
 - `quickshell` (the `qs` binary)
 - Qt 6: declarative, svg, 5compat, wayland
-- `wl-clipboard` (`wl-copy`), for copy-to-clipboard
+- `wl-clipboard`, for copy to clipboard
 
 Optional:
 
-- `imagemagick`: stitching a multi-monitor capture into one image
-- `cliphist`: recording copied shots into clipboard history
-- `curl`: uploading
-- `kdialog`: the save-as file dialog
+- `imagemagick`: stitch a multi-monitor capture into one image
+- `cliphist`: record copied shots into clipboard history
+- `curl`: upload
+- `kdialog`: native save-as dialog
 
 ## Running
 
@@ -73,11 +86,11 @@ rishot            # region: drag a box, or click a window to grab it
 rishot monitor    # click a monitor to grab the whole output
 ```
 
-From a checkout without installing, use `bin/rishot` instead.
+From a checkout without installing, run `bin/rishot`.
 
 ## Keybinding
 
-rishot does not register a global hotkey for you. Bind the command to a key in your compositor config yourself.
+rishot does not grab a global hotkey for you. Bind the command yourself in your compositor config.
 
 Hyprland (conf):
 
@@ -97,27 +110,19 @@ Sway:
 bindsym Print exec rishot
 ```
 
-When you rebind from the in-app settings panel on Hyprland, the recorder autodetects whether your config is `hyprland.conf` or a native `hyprland.lua` and writes the matching form.
-
-## Icons and Qt version
-
-Icon centring inside the toolbar buttons needs Qt 6.10 or newer. On older Qt the icons fall back to box-centring, slightly off, but everything still works.
-
-## Features
-
-- Region and monitor selection
-- Window highlight on hover (Hyprland, Sway, Niri)
-- Annotation tools: rectangle, ellipse, line, arrow, pen, marker, text, blur
-- Undo and redo
-- Copy to clipboard, save to disk, upload
+If you rebind from the in-app settings panel on Hyprland, the recorder checks whether your config is `hyprland.conf` or a native `hyprland.lua` and writes the matching form into its own include file, never your main config.
 
 ## Upload
 
-Upload posts to `litterbox.catbox.moe` by default. The returned link is unguessable but **public** and expires after 72 hours; it is not authenticated or private. Point `RISHOT_UPLOAD` at your own endpoint to use a different host. For anything sensitive, use copy or save instead of upload.
+Upload posts to `litterbox.catbox.moe` by default. The link it returns is unguessable but **public**, and it expires after 72 hours. It is not authenticated. Set `RISHOT_UPLOAD` to your own endpoint to use a different host. For anything sensitive, copy or save instead.
 
 ## Environment variables
 
-- `RISHOT_CONFIG_DIR`: override the Quickshell config dir (the one holding `shell.qml`)
-- `RISHOT_SAVEDIR`: override the auto-save directory
-- `RISHOT_UPLOAD`: override the upload endpoint (curl form-post target)
-- `RISHOT_KEYBIND_FILE`: path to a keybind file rishot may write when you rebind from the settings panel
+- `RISHOT_CONFIG_DIR`: the Quickshell config dir (the one holding `shell.qml`)
+- `RISHOT_SAVEDIR`: the auto-save directory
+- `RISHOT_UPLOAD`: the upload endpoint (curl form-post target)
+- `RISHOT_KEYBIND_FILE`: a keybind file rishot may write when you rebind from the settings panel
+
+## Notes
+
+Icon centring in the toolbar needs Qt 6.10 or newer. On older Qt the icons box-centre instead, a touch off, but everything works.
