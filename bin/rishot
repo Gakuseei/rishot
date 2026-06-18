@@ -56,6 +56,10 @@ command -v qs >/dev/null 2>&1 || {
 	exit 1
 }
 
-# Single instance: a second press while the overlay is up is a no-op.
+# Single instance: a second press while the overlay is up is a no-op. The lock
+# is held on fd 9 for the lifetime of qs; clipboard daemons that qs spawns close
+# fd 9 (see shell.qml) so a backgrounded wl-copy cannot pin the lock after exit.
 lock="${XDG_RUNTIME_DIR:-/tmp}/rishot.lock"
-exec flock -n "$lock" env RISHOT_MODE="$mode" qs -p "$dir"
+exec 9>"$lock"
+flock -n 9 || { echo "rishot: already running" >&2; exit 0; }
+exec env RISHOT_MODE="$mode" qs -p "$dir"

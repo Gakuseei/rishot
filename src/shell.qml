@@ -477,7 +477,7 @@ ShellRoot {
         id: copyProc
         function run(file) {
             command = ["sh", "-c",
-                "wl-copy --type image/png < \"$1\"; "
+                "exec 9>&-; wl-copy --type image/png < \"$1\"; "
                 + "command -v cliphist >/dev/null 2>&1 || exit 0; "
                 + "if [ \"$(stat -c%s \"$1\")\" -ge 4900000 ]; then "
                 + "command -v magick >/dev/null 2>&1 && magick \"$1\" -quality 92 jpeg:- | cliphist store; "
@@ -510,7 +510,7 @@ ShellRoot {
     Process {
         id: urlCopyProc
         function run(url) {
-            command = ["sh", "-c", "printf %s " + JSON.stringify(url) + " | wl-copy"];
+            command = ["sh", "-c", "exec 9>&-; printf %s " + JSON.stringify(url) + " | wl-copy"];
             running = true;
         }
         onExited: () => Qt.quit()
