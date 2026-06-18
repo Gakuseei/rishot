@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { keyName, bindString, luaFile, parseBind } = require("./keymap.js");
+const { keyName, bindString, luaFile, parseBind,
+    confLine, confFile, bindLineFor, parseConfBind } = require("./keymap.js");
 
 const K = {
     Print: 0x01000009, Escape: 0x01000000, Tab: 0x01000001, Return: 0x01000004,
@@ -56,6 +57,32 @@ if (file.includes('hl.bind("CTRL + SHIFT + P", hl.dsp.exec_cmd("rishot"))'))
 else { failed++; console.log("FAIL luaFile bind line\n  got:\n" + file); }
 eq(parseBind(file), "CTRL + SHIFT + P", "parseBind round-trips the written bind");
 eq(parseBind('hl.bind("Print", hl.dsp.exec_cmd("rishot"))'), "Print", "parseBind reads default Print");
+
+eq(confLine(K.Print, 0, ""), "bind = , Print, exec, rishot",
+    "plain Print -> 'bind = , Print, exec, rishot'");
+eq(confLine(K.P, M.SUPER | M.SHIFT, "p"), "bind = SUPER SHIFT, p, exec, rishot",
+    "Super+Shift+p -> 'bind = SUPER SHIFT, p, exec, rishot'");
+eq(confLine(K.A, M.CTRL, "a"), "bind = CTRL, a, exec, rishot",
+    "Ctrl+a -> 'bind = CTRL, a, exec, rishot'");
+eq(confLine(K.Shift, M.SHIFT, ""), null, "modifier-only chord -> null (conf)");
+
+eq(confFile(K.Print, 0, ""), "bind = , Print, exec, rishot\n",
+    "confFile appends newline");
+eq(confFile(K.Shift, M.SHIFT, ""), null, "confFile of modifier-only -> null");
+
+eq(bindLineFor("conf", K.P, M.SUPER, "p"), "bind = SUPER, p, exec, rishot\n",
+    "bindLineFor conf delegates to confFile");
+eq(bindLineFor("lua", K.P, M.SUPER, "p"),
+    'hl.bind("SUPER + p", hl.dsp.exec_cmd("rishot"))\n',
+    "bindLineFor lua delegates to luaFile via bindString");
+
+eq(parseConfBind("bind = , Print, exec, rishot"), "Print",
+    "parseConfBind reads plain Print");
+eq(parseConfBind("bind = SUPER SHIFT, p, exec, rishot"), "SUPER + SHIFT + p",
+    "parseConfBind reads SUPER SHIFT + p");
+eq(parseConfBind(confFile(K.S, M.SHIFT | M.SUPER, "s")), "SUPER + SHIFT + s",
+    "parseConfBind round-trips confFile");
+eq(parseConfBind("# just a comment"), null, "parseConfBind ignores non-bind text");
 
 if (failed > 0) { console.log("\n" + failed + " test(s) FAILED"); process.exit(1); }
 console.log("\nAll tests PASSED");

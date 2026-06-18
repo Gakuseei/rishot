@@ -80,7 +80,36 @@ function parseBind(luaText) {
     return m ? m[1] : null;
 }
 
+function confLine(key, modifiers, text) {
+    var k = keyName(key, text);
+    if (k === null) return null;
+    var mods = modNames(modifiers).join(" ");
+    return "bind = " + mods + ", " + k + ", exec, rishot";
+}
+
+function confFile(key, modifiers, text) {
+    var line = confLine(key, modifiers, text);
+    return line === null ? null : line + "\n";
+}
+
+function bindLineFor(format, key, modifiers, text) {
+    if (format === "conf") return confFile(key, modifiers, text);
+    var bind = bindString(key, modifiers, text);
+    return bind === null ? null : luaFile(bind);
+}
+
+function parseConfBind(confText) {
+    var m = /bind\s*=\s*([^,]*),\s*([^,]+),\s*exec\s*,\s*rishot/.exec(confText);
+    if (!m) return null;
+    var mods = m[1].trim().split(/\s+/).filter(function (s) { return s.length > 0; });
+    var key = m[2].trim();
+    mods.push(key);
+    return mods.join(" + ");
+}
+
 if (typeof module !== "undefined" && module.exports) {
     module.exports = { keyName: keyName, modNames: modNames, bindString: bindString,
-        luaLine: luaLine, luaFile: luaFile, parseBind: parseBind };
+        luaLine: luaLine, luaFile: luaFile, parseBind: parseBind,
+        confLine: confLine, confFile: confFile, bindLineFor: bindLineFor,
+        parseConfBind: parseConfBind };
 }

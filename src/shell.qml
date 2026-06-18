@@ -664,7 +664,14 @@ ShellRoot {
                     luaPath: root.keybindFile
                     x: Math.max(8, Math.min(toolbar.x + toolbar.gearCenterX - width / 2,
                                             win.width - width - 8))
-                    y: toolbar.y - height - 6
+                    y: {
+                        var above = toolbar.y - height - 6;
+                        if (above < 8) {
+                            var below = toolbar.y + toolbar.height + 6;
+                            return Math.min(below, win.height - height - 8);
+                        }
+                        return above;
+                    }
                     onCloseRequested: root.settingsOpen = false
                     onRebound: Qt.quit()
                 }

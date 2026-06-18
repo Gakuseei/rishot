@@ -87,7 +87,7 @@ Item {
             paintCursor: false
         }
 
-        readonly property real mosaicFactor: 14
+        readonly property real mosaicFactor: Config.mosaicFactor
 
         function blurItems() {
             var src = overlay.model ? overlay.model.items : [];
@@ -138,7 +138,7 @@ Item {
                 FastBlur {
                     anchors.fill: parent
                     source: blurSrc
-                    radius: 64
+                    radius: Config.blurRadius
                 }
             }
         }
