@@ -43,31 +43,11 @@ Item {
     readonly property color dimColor: Theme.dim
     readonly property color vermilion: Theme.vermilion
 
-    function zoomBubbleRect(a, offX, offY) {
-        var p0 = a.points[0], p1 = a.points[1];
-        var sw = Math.abs(p1.x - p0.x), sh = Math.abs(p1.y - p0.y);
-        var z = a.zoom || Config.zoomFactor;
-        var bw = sw * z, bh = sh * z;
-        var cx = Math.min(p0.x, p1.x) + sw / 2 + (offX || 0);
-        var cy = Math.min(p0.y, p1.y) + sh / 2 + (offY || 0);
-        return { x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh };
-    }
-
     function selectionBox() {
         if (selectedIndex === null || !model
             || selectedIndex < 0 || selectedIndex >= model.items.length) return null;
         var a = model.items[selectedIndex];
         var off = moveOffset || { x: 0, y: 0 };
-        if (a.type === "zoom") {
-            var bb = zoomBubbleRect(a, off.x, off.y);
-            var zpad = 6;
-            return {
-                x: bb.x - sx - zpad,
-                y: bb.y - sy - zpad,
-                w: bb.w + zpad * 2,
-                h: bb.h + zpad * 2
-            };
-        }
         var xs = a.points.map(function (p) { return p.x; });
         var ys = a.points.map(function (p) { return p.y; });
         var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
@@ -228,41 +208,41 @@ Item {
                 readonly property real srcH: valid ? Math.abs(a.points[1].y - a.points[0].y) : 0
                 readonly property real zf: (valid && a.zoom) ? a.zoom : Config.zoomFactor
 
-                readonly property real srcLX: srcMinX - overlay.sx + off.x
-                readonly property real srcLY: srcMinY - overlay.sy + off.y
-                readonly property real bubW: srcW * zf
-                readonly property real bubH: srcH * zf
-                readonly property real corner: Math.min(bubW, bubH) * 0.08
+                readonly property real rx: srcMinX - overlay.sx + off.x
+                readonly property real ry: srcMinY - overlay.sy + off.y
+                readonly property real rw: srcW
+                readonly property real rh: srcH
+                readonly property real corner: Math.min(rw, rh) * 0.08
 
-                readonly property real srcCX: srcLX + srcW / 2
-                readonly property real srcCY: srcLY + srcH / 2
-                readonly property real bubLX: srcCX - bubW / 2
-                readonly property real bubLY: srcCY - bubH / 2
+                readonly property real cx: rx + rw / 2
+                readonly property real cy: ry + rh / 2
+                readonly property real subW: rw / zf
+                readonly property real subH: rh / zf
 
                 anchors.fill: parent
-                visible: valid && srcW > 0 && srcH > 0
+                visible: valid && rw > 0 && rh > 0
 
                 Rectangle {
-                    x: zoomCell.bubLX + 2
-                    y: zoomCell.bubLY + 2
-                    width: zoomCell.bubW
-                    height: zoomCell.bubH
+                    x: zoomCell.rx + 2
+                    y: zoomCell.ry + 2
+                    width: zoomCell.rw
+                    height: zoomCell.rh
                     radius: zoomCell.corner
                     color: Qt.rgba(0, 0, 0, 0.28)
                     antialiasing: true
                 }
 
                 Item {
-                    id: bubbleClip
-                    x: zoomCell.bubLX
-                    y: zoomCell.bubLY
-                    width: zoomCell.bubW
-                    height: zoomCell.bubH
+                    id: lensClip
+                    x: zoomCell.rx
+                    y: zoomCell.ry
+                    width: zoomCell.rw
+                    height: zoomCell.rh
                     layer.enabled: true
                     layer.effect: OpacityMask {
                         maskSource: Rectangle {
-                            width: zoomCell.bubW
-                            height: zoomCell.bubH
+                            width: zoomCell.rw
+                            height: zoomCell.rh
                             radius: zoomCell.corner
                             antialiasing: true
                         }
@@ -274,16 +254,17 @@ Item {
                         live: false
                         recursive: false
                         smooth: true
-                        sourceRect: Qt.rect(zoomCell.srcLX, zoomCell.srcLY,
-                                            zoomCell.srcW, zoomCell.srcH)
+                        sourceRect: Qt.rect(zoomCell.cx - zoomCell.subW / 2,
+                                            zoomCell.cy - zoomCell.subH / 2,
+                                            zoomCell.subW, zoomCell.subH)
                     }
                 }
 
                 Rectangle {
-                    x: zoomCell.bubLX
-                    y: zoomCell.bubLY
-                    width: zoomCell.bubW
-                    height: zoomCell.bubH
+                    x: zoomCell.rx
+                    y: zoomCell.ry
+                    width: zoomCell.rw
+                    height: zoomCell.rh
                     radius: zoomCell.corner
                     color: "transparent"
                     border.color: overlay.vermilion

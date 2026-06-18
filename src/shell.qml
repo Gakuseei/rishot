@@ -123,32 +123,6 @@ ShellRoot {
     }
     function isFreehand(t) { return t === "pen"; }
 
-    /**
-     * Global source rect of a zoom annotation (the magnified content), derived
-     * from its two-point span. x/y are the min corner, so it is orientation
-     * independent regardless of drag direction.
-     */
-    function zoomSrcRect(a) {
-        var p0 = a.points[0], p1 = a.points[1];
-        var x0 = Math.min(p0.x, p1.x), y0 = Math.min(p0.y, p1.y);
-        return { x: x0, y: y0, w: Math.abs(p1.x - p0.x), h: Math.abs(p1.y - p0.y) };
-    }
-
-    /**
-     * Global rect of the magnified patch: the whole source shown at zoom x,
-     * centred on the source rect's centre so it inflates in place over the
-     * original content. With moveOffset the centre shifts, so the same helper
-     * drives both the committed geometry and the live move preview.
-     */
-    function zoomBubbleRect(a, offX, offY) {
-        var s = zoomSrcRect(a);
-        var z = a.zoom || Config.zoomFactor;
-        var bw = s.w * z, bh = s.h * z;
-        var cx = s.x + s.w / 2 + (offX || 0);
-        var cy = s.y + s.h / 2 + (offY || 0);
-        return { x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh };
-    }
-
     function placeText(gx, gy) {
         if (textEditing) { commitText(); return; }
         var p = clampToSel(gx, gy);
@@ -204,7 +178,6 @@ ShellRoot {
             var d = a.size || 32;
             return { x: x0 - d / 2, y: y0 - d / 2, w: d, h: d };
         }
-        if (a.type === "zoom") return zoomBubbleRect(a);
         return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
     }
 
