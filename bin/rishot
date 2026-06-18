@@ -38,7 +38,7 @@ dir="${RISHOT_CONFIG_DIR:-}"
 if [ -z "$dir" ]; then
 	self=$(dirname "$(readlink -f "$0")")
 	for c in \
-		"$HOME/.local/share/rishot/src" \
+		"${HOME:-}/.local/share/rishot/src" \
 		/usr/share/rishot/src \
 		/usr/lib/rishot/src \
 		"$self/../src"; do

@@ -138,7 +138,7 @@ Item {
                 id: gear
                 icon: "gear"
                 active: tb.settingsOpen
-                onClicked: { tb.settingsOpen = !tb.settingsOpen; tb.settingsRequested(); }
+                onClicked: tb.settingsRequested()
             }
         }
     }

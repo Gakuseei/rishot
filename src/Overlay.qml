@@ -373,6 +373,12 @@ Item {
      * an off-screen edge would otherwise sit pinned at the monitor seam and,
      * once dragged, collapse that edge onto the seam; gating on the real edge
      * keeps each edge grabbable on exactly one screen.
+     *
+     * Edge handles ("t", "b", "l", "r") name a single shared edge that can span
+     * several monitors. Their handle sits at the global midpoint of that edge,
+     * so gating only on edge presence would draw a duplicate, grabbable handle
+     * on every monitor the edge crosses. The perpendicular midpoint check below
+     * pins each edge handle to the one monitor that actually contains it.
      */
     function edgeOnScreen(role) {
         if (!globalSel) return false;
@@ -381,6 +387,14 @@ Item {
         if (role.indexOf("r") >= 0 && globalSel.x + globalSel.w > sx + width + eps) return false;
         if (role.indexOf("t") >= 0 && globalSel.y < sy - eps) return false;
         if (role.indexOf("b") >= 0 && globalSel.y + globalSel.h > sy + height + eps) return false;
+        if (role === "t" || role === "b") {
+            var mx = globalSel.x + globalSel.w / 2;
+            if (mx < sx - eps || mx >= sx + width + eps) return false;
+        }
+        if (role === "l" || role === "r") {
+            var my = globalSel.y + globalSel.h / 2;
+            if (my < sy - eps || my >= sy + height + eps) return false;
+        }
         return true;
     }
 

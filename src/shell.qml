@@ -39,7 +39,7 @@ ShellRoot {
 
     readonly property bool testRect: Quickshell.env("RISHOT_TESTRECT") === "1"
     readonly property string mode: Quickshell.env("RISHOT_MODE") === "monitor" ? "monitor" : "region"
-    readonly property string homeDir: Quickshell.env("HOME")
+    readonly property string homeDir: Quickshell.env("HOME") || "/tmp"
     readonly property string tmpDir: Quickshell.env("XDG_RUNTIME_DIR") || "/tmp"
     readonly property string shotsDir: Quickshell.env("RISHOT_SAVEDIR")
         || (Quickshell.env("XDG_PICTURES_DIR")
@@ -655,7 +655,7 @@ ShellRoot {
                     onCopyRequested: root.doCopy()
                     onSaveRequested: root.doSave()
                     onUploadRequested: root.doUpload()
-                    onSettingsRequested: root.settingsOpen = toolbar.settingsOpen
+                    onSettingsRequested: root.settingsOpen = !root.settingsOpen
                 }
 
                 SettingsPanel {

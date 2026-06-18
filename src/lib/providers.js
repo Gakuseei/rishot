@@ -37,6 +37,7 @@ function parseHyprland(monitorsJson, clientsJson) {
             if (!c.mapped || c.hidden) continue;
             if (!c.workspace || activeWs.indexOf(c.workspace.id) === -1) continue;
             if (!c.size || c.size[0] <= 0 || c.size[1] <= 0) continue;
+            if (!c.at) continue;
             rects.push({ x: c.at[0], y: c.at[1], w: c.size[0], h: c.size[1], z: c.focusHistoryID });
         }
     } catch (e) {

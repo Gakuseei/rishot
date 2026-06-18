@@ -84,5 +84,19 @@ eq(parseConfBind(confFile(K.S, M.SHIFT | M.SUPER, "s")), "SUPER + SHIFT + s",
     "parseConfBind round-trips confFile");
 eq(parseConfBind("# just a comment"), null, "parseConfBind ignores non-bind text");
 
+eq(parseConfBind("bind = SUPER, T, exec, kitty\nbind = SUPER SHIFT, p, exec, rishot"),
+    "SUPER + SHIFT + p", "parseConfBind picks the rishot line out of many binds");
+eq(parseConfBind("bind=SUPER,p,exec,rishot"), "SUPER + p",
+    "parseConfBind tolerates no spaces around separators");
+eq(parseConfBind("bind\t=\tSUPER,\tp,\texec,\trishot"), "SUPER + p",
+    "parseConfBind tolerates tab whitespace");
+eq(parseConfBind(""), null, "parseConfBind of empty string -> null");
+eq(parseBind(""), null, "parseBind of empty string -> null");
+
+eq(bindString(K.Shift, 0, ""), null, "bare Shift chord -> null (recorder keeps listening)");
+eq(bindString(K.Control, M.CTRL, ""), null,
+    "Ctrl held, Ctrl key down -> null (recorder must not cancel on a modifier)");
+eq(bindString(K.Meta, M.SUPER, ""), null, "Super held, Super key down -> null");
+
 if (failed > 0) { console.log("\n" + failed + " test(s) FAILED"); process.exit(1); }
 console.log("\nAll tests PASSED");

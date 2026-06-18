@@ -20,20 +20,51 @@ Item {
     readonly property color idle: Theme.idle
 
     readonly property bool isHyprland: Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE") !== ""
-    readonly property bool useLua: panel.luaPath !== ""
     readonly property string hyprDir: Quickshell.env("HOME") + "/.config/hypr"
-    readonly property string confPath: hyprDir + "/rishot.conf"
-    readonly property string bindTarget: useLua ? panel.luaPath : confPath
+
+    property string detectedFlavor: "conf"
+    property bool detecting: false
+    property var pendingChord: null
+
+    readonly property string format: panel.luaPath !== ""
+        ? (panel.luaPath.endsWith(".conf") ? "conf" : "lua")
+        : panel.detectedFlavor
+    readonly property string bindTarget: panel.luaPath !== ""
+        ? panel.luaPath
+        : panel.hyprDir + (panel.format === "conf" ? "/rishot.conf" : "/rishot.lua")
 
     readonly property int arrow: 7
     implicitWidth: card.implicitWidth
     implicitHeight: card.implicitHeight + arrow
 
+    Process {
+        id: detectProc
+        command: ["sh", "-c",
+            '[ -f "$1/hyprland.conf" ] && echo conf || { [ -f "$1/hyprland.lua" ] && echo lua || echo conf; }',
+            "_", panel.hyprDir]
+        stdout: StdioCollector { id: detectOut }
+        onExited: {
+            var f = detectOut.text.trim();
+            if (f === "lua" || f === "conf") panel.detectedFlavor = f;
+            panel.detecting = false;
+            if (panel.pendingChord) {
+                var c = panel.pendingChord;
+                panel.pendingChord = null;
+                panel.applyBind(c.key, c.modifiers, c.text);
+            }
+        }
+    }
+
+    Component.onCompleted: if (panel.isHyprland && panel.luaPath === "") {
+        panel.detecting = true;
+        detectProc.running = true;
+    }
+
     FileView {
         id: reader
         path: panel.bindTarget
         onLoaded: {
-            var b = panel.useLua ? Keymap.parseBind(text()) : Keymap.parseConfBind(text());
+            var b = panel.format === "lua" ? Keymap.parseBind(text()) : Keymap.parseConfBind(text());
             if (b) panel.hotkey = b;
         }
     }
@@ -57,23 +88,30 @@ Item {
     }
 
     /**
-     * Records the captured chord to the active target. With a lua keybind file
-     * (Erik's Ricelin path) it writes an hl.bind line; otherwise it writes a
-     * hyprlang bind to ~/.config/hypr/rishot.conf, after ensuring the dir
-     * exists. Hyprland reload + rebound() fire from the writer's onSaved.
+     * Records the captured chord to the active target. A bare modifier press is
+     * ignored so the recorder keeps listening for the final key. In lua format
+     * (native-lua Hyprland config, or Erik's Ricelin RISHOT_KEYBIND_FILE path) it
+     * writes an hl.bind line; in conf format it writes a hyprlang bind, after
+     * ensuring the hypr dir exists. If flavor autodetection has not finished yet
+     * the chord is stashed and replayed from detectProc.onExited so it is never
+     * written against a stale default flavor. Hyprland reload + rebound() fire
+     * from the writer's onSaved.
      */
     function applyBind(key, modifiers, text) {
+        var bind = Keymap.bindString(key, modifiers, text);
+        if (bind === null) return;
         panel.listening = false;
-        if (panel.useLua) {
-            var bind = Keymap.bindString(key, modifiers, text);
-            if (bind === null) return;
+        if (panel.detecting) {
+            panel.pendingChord = { key: key, modifiers: modifiers, text: text };
+            return;
+        }
+        if (panel.format === "lua") {
             panel.hotkey = bind;
             writer.setText(Keymap.luaFile(bind));
         } else {
             var line = Keymap.confFile(key, modifiers, text);
-            if (line === null) return;
             mkHyprDir.running = true;
-            panel.hotkey = Keymap.parseConfBind(line) || panel.hotkey;
+            panel.hotkey = Keymap.parseConfBind(line) || bind;
             writer.setText(line);
         }
     }
@@ -267,7 +305,16 @@ Item {
                 }
 
                 Label {
-                    visible: panel.isHyprland && !panel.useLua
+                    visible: panel.isHyprland && panel.format === "lua"
+                    Layout.fillWidth: true
+                    text: 'add: require("rishot")'
+                    color: Theme.dimIcon
+                    font.pixelSize: 11
+                    wrapMode: Text.WordWrap
+                }
+
+                Label {
+                    visible: panel.isHyprland && panel.format === "conf"
                     Layout.fillWidth: true
                     text: "add: source = ~/.config/hypr/rishot.conf"
                     color: Theme.dimIcon

@@ -33,6 +33,14 @@ eq(parseHyprland(hyprMonitors, hyprClients), [
 eq(parseHyprland("not json", hyprClients), [], "hyprland bad monitors json -> []");
 eq(parseHyprland(hyprMonitors, "}{"), [], "hyprland bad clients json -> []");
 
+const hyprClientsMissingAt = JSON.stringify([
+    { mapped: true, hidden: false, workspace: { id: 1 }, size: [500, 500], focusHistoryID: 0 },
+    { mapped: true, hidden: false, workspace: { id: 1 }, at: [10, 20], size: [800, 600], focusHistoryID: 1 }
+]);
+eq(parseHyprland(hyprMonitors, hyprClientsMissingAt), [
+    { x: 10, y: 20, w: 800, h: 600, z: 1 }
+], "hyprland client missing 'at' is skipped, not fatal to the whole parse");
+
 const swayTree = JSON.stringify({
     type: "root",
     rect: { x: 0, y: 0, width: 3840, height: 1080 },
@@ -136,6 +144,14 @@ const niriExpected = [
 ];
 eq(parseNiri(niriWindows, niriWorkspaces, niriOutputsObject), niriExpected, "niri object outputs: workspace->output join, logical offset, focused z=0, null tile + unknown workspace excluded");
 eq(parseNiri(niriWindows, niriWorkspaces, niriOutputsArray), niriExpected, "niri array outputs: same result as object shape");
+const niriOutputsDisabled = JSON.stringify({
+    "DP-1": { name: "DP-1", logical: null },
+    "HDMI-A-1": { name: "HDMI-A-1", logical: { x: 2560, y: 0, width: 1920, height: 1080, scale: 1 } }
+});
+eq(parseNiri(niriWindows, niriWorkspaces, niriOutputsDisabled), [
+    { x: 2565, y: 5, w: 1280, h: 720, z: 0 }
+], "niri disabled output (logical:null) drops its window, keeps the other");
+
 eq(parseNiri(niriWindows, niriWorkspaces, "{bad"), [], "niri bad outputs json -> []");
 eq(parseNiri(niriWindows, "{bad", niriOutputsObject), [], "niri bad workspaces json -> []");
 eq(parseNiri("{bad", niriWorkspaces, niriOutputsObject), [], "niri bad windows json -> []");
