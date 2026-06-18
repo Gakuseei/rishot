@@ -12,6 +12,7 @@ Item {
     property var globalSel: null
     property bool capturing: false
     property bool ready: false
+    property string phase: ""
 
     property var model: null
     property var draft: null
@@ -28,6 +29,9 @@ Item {
     signal frozen()
     signal textChanged(string t)
     signal textCommitted()
+    signal resizeStarted(string role, real gx, real gy)
+    signal resizeMoved(real gx, real gy)
+    signal resizeEnded()
 
     readonly property int sx: screenData.x
     readonly property int sy: screenData.y
@@ -254,22 +258,6 @@ Item {
             border.width: 1.5
         }
 
-        Repeater {
-            model: [
-                { hx: 0, hy: 0 },
-                { hx: 1, hy: 0 },
-                { hx: 0, hy: 1 },
-                { hx: 1, hy: 1 }
-            ]
-            Rectangle {
-                required property var modelData
-                width: 8; height: 8
-                color: overlay.vermilion
-                x: modelData.hx * (chrome.width - width)
-                y: modelData.hy * (chrome.height - height)
-            }
-        }
-
         Text {
             text: overlay.globalSel
                 ? "⛩ rishot · " + Math.round(overlay.globalSel.w) + "×" + Math.round(overlay.globalSel.h)
@@ -377,6 +365,85 @@ Item {
             else overlay.hovered(m.x + overlay.sx, m.y + overlay.sy);
         }
         onReleased: overlay.released()
+    }
+
+    /**
+     * True when the named global edge of the selection lies on this screen
+     * rather than being a clip artifact of intersectRect. A handle that drags
+     * an off-screen edge would otherwise sit pinned at the monitor seam and,
+     * once dragged, collapse that edge onto the seam; gating on the real edge
+     * keeps each edge grabbable on exactly one screen.
+     */
+    function edgeOnScreen(role) {
+        if (!globalSel) return false;
+        var eps = 0.5;
+        if (role.indexOf("l") >= 0 && globalSel.x < sx - eps) return false;
+        if (role.indexOf("r") >= 0 && globalSel.x + globalSel.w > sx + width + eps) return false;
+        if (role.indexOf("t") >= 0 && globalSel.y < sy - eps) return false;
+        if (role.indexOf("b") >= 0 && globalSel.y + globalSel.h > sy + height + eps) return false;
+        return true;
+    }
+
+    Item {
+        id: resizeHandles
+        anchors.fill: parent
+        visible: overlay.ready && overlay.phase === "editing" && overlay.localSel !== null
+
+        Repeater {
+            model: [
+                { role: "tl", ax: 0,   ay: 0,   corner: true,  cur: Qt.SizeFDiagCursor },
+                { role: "t",  ax: 0.5, ay: 0,   corner: false, cur: Qt.SizeVerCursor },
+                { role: "tr", ax: 1,   ay: 0,   corner: true,  cur: Qt.SizeBDiagCursor },
+                { role: "r",  ax: 1,   ay: 0.5, corner: false, cur: Qt.SizeHorCursor },
+                { role: "br", ax: 1,   ay: 1,   corner: true,  cur: Qt.SizeFDiagCursor },
+                { role: "b",  ax: 0.5, ay: 1,   corner: false, cur: Qt.SizeVerCursor },
+                { role: "bl", ax: 0,   ay: 1,   corner: true,  cur: Qt.SizeBDiagCursor },
+                { role: "l",  ax: 0,   ay: 0.5, corner: false, cur: Qt.SizeHorCursor }
+            ]
+
+            Item {
+                id: handle
+                required property var modelData
+                readonly property real cx: overlay.localSel
+                    ? overlay.localSel.x + modelData.ax * overlay.localSel.w : 0
+                readonly property real cy: overlay.localSel
+                    ? overlay.localSel.y + modelData.ay * overlay.localSel.h : 0
+                readonly property real visSize: modelData.corner ? 10 : 8
+                readonly property bool real: { overlay.globalSel; return overlay.edgeOnScreen(modelData.role); }
+
+                x: cx - 9
+                y: cy - 9
+                width: 18
+                height: 18
+                visible: real
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: handle.visSize
+                    height: handle.visSize
+                    radius: 1
+                    color: overlay.vermilion
+                    border.color: Qt.rgba(1, 1, 1, 0.85)
+                    border.width: 1
+                    antialiasing: true
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: handle.real
+                    hoverEnabled: true
+                    acceptedButtons: Qt.LeftButton
+                    cursorShape: handle.modelData.cur
+                    onPressed: overlay.resizeStarted(handle.modelData.role,
+                        handle.cx + overlay.sx, handle.cy + overlay.sy)
+                    onPositionChanged: (m) => {
+                        if (pressed) overlay.resizeMoved(m.x + handle.x + overlay.sx,
+                                                         m.y + handle.y + overlay.sy);
+                    }
+                    onReleased: overlay.resizeEnded()
+                }
+            }
+        }
     }
 
     TextInput {

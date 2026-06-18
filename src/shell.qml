@@ -26,6 +26,7 @@ ShellRoot {
     property var selectedIndex: null
     property var moveOffset: null
     property var moveStart: null
+    property var resizing: null
     property var hoverWindow: null
     property var windowRects: []
     property bool dialogMode: false
@@ -67,6 +68,33 @@ ShellRoot {
             hoverWindow = null;
         } else globalSel = null;
     }
+
+    /**
+     * Starts a region-resize gesture. The role names which edge or corner is
+     * being dragged ("l", "r", "t", "b", "tl", "tr", "bl", "br"); the opposite
+     * side stays anchored for the duration.
+     */
+    function beginResize(role, gx, gy) { resizing = role; }
+
+    /**
+     * Recomputes globalSel by moving only the dragged edge(s) to the pointer,
+     * clamping each axis to a minimum extent of 8px so the rect never collapses
+     * or inverts. The anchored side is preserved.
+     */
+    function updateResize(gx, gy) {
+        if (resizing === null || !globalSel) return;
+        var s = globalSel, m = 8;
+        var x0 = s.x, y0 = s.y, x1 = s.x + s.w, y1 = s.y + s.h;
+        var r = resizing;
+        if (r === "l" || r === "tl" || r === "bl") x0 = Math.min(gx, x1 - m);
+        if (r === "r" || r === "tr" || r === "br") x1 = Math.max(gx, x0 + m);
+        if (r === "t" || r === "tl" || r === "tr") y0 = Math.min(gy, y1 - m);
+        if (r === "b" || r === "bl" || r === "br") y1 = Math.max(gy, y0 + m);
+        globalSel = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    }
+
+    /** Ends the active region-resize gesture. */
+    function endResize() { resizing = null; }
 
     function clampToSel(gx, gy) {
         var x = Math.max(globalSel.x, Math.min(gx, globalSel.x + globalSel.w));
@@ -299,6 +327,7 @@ ShellRoot {
         hoverWindow = mode === "monitor" ? monitorAt(gx, gy) : windowAt(gx, gy);
     }
     function pointerPressed(gx, gy) {
+        if (resizing !== null) return;
         if (phase === "selecting") {
             if (mode === "monitor") selectMonitor(gx, gy);
             else beginSelection(gx, gy);
@@ -307,6 +336,7 @@ ShellRoot {
         else beginDraw(gx, gy);
     }
     function pointerMoved(gx, gy) {
+        if (resizing !== null) return;
         if (phase === "selecting") updateSelection(gx, gy);
         else if (activeTool === "select") updateSelect(gx, gy);
         else updateDraw(gx, gy);
@@ -574,6 +604,7 @@ ShellRoot {
                     screenData: win.modelData
                     globalSel: root.globalSel
                     capturing: root.capturing
+                    phase: root.phase
                     model: root.model
                     draft: root.draft
                     annRevision: root.annRevision
@@ -586,6 +617,9 @@ ShellRoot {
                     onMovedTo: (gx, gy) => root.pointerMoved(gx, gy)
                     onHovered: (gx, gy) => root.pointerHover(gx, gy)
                     onReleased: root.pointerReleased()
+                    onResizeStarted: (role, gx, gy) => root.beginResize(role, gx, gy)
+                    onResizeMoved: (gx, gy) => root.updateResize(gx, gy)
+                    onResizeEnded: root.endResize()
                     onFrozen: root.noteFrozen()
                     onTextChanged: (t) => { if (root.draft && root.draft.type === "text") { root.draft.text = t; root.bumpAnn(); } }
                     onTextCommitted: root.commitText()
