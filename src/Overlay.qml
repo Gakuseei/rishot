@@ -43,12 +43,14 @@ Item {
     readonly property color dimColor: Theme.dim
     readonly property color vermilion: Theme.vermilion
 
-    function zoomBubbleRect(a) {
+    function zoomBubbleRect(a, offX, offY) {
         var p0 = a.points[0], p1 = a.points[1];
         var sw = Math.abs(p1.x - p0.x), sh = Math.abs(p1.y - p0.y);
         var z = a.zoom || Config.zoomFactor;
-        var t = a.target || { x: Math.min(p0.x, p1.x), y: Math.min(p0.y, p1.y) };
-        return { x: t.x, y: t.y, w: sw * z, h: sh * z };
+        var bw = sw * z, bh = sh * z;
+        var cx = Math.min(p0.x, p1.x) + sw / 2 + (offX || 0);
+        var cy = Math.min(p0.y, p1.y) + sh / 2 + (offY || 0);
+        return { x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh };
     }
 
     function selectionBox() {
@@ -57,11 +59,11 @@ Item {
         var a = model.items[selectedIndex];
         var off = moveOffset || { x: 0, y: 0 };
         if (a.type === "zoom") {
-            var bb = zoomBubbleRect(a);
+            var bb = zoomBubbleRect(a, off.x, off.y);
             var zpad = 6;
             return {
-                x: bb.x - sx + off.x - zpad,
-                y: bb.y - sy + off.y - zpad,
+                x: bb.x - sx - zpad,
+                y: bb.y - sy - zpad,
                 w: bb.w + zpad * 2,
                 h: bb.h + zpad * 2
             };
@@ -226,61 +228,19 @@ Item {
                 readonly property real srcH: valid ? Math.abs(a.points[1].y - a.points[0].y) : 0
                 readonly property real zf: (valid && a.zoom) ? a.zoom : Config.zoomFactor
 
-                readonly property real srcLX: srcMinX - overlay.sx
-                readonly property real srcLY: srcMinY - overlay.sy
-
-                readonly property bool hasTarget: valid && a.target !== undefined && a.target !== null
-                readonly property real tgtGX: hasTarget ? a.target.x : srcMinX
-                readonly property real tgtGY: hasTarget ? a.target.y : srcMinY
-                readonly property real bubLX: tgtGX - overlay.sx + off.x
-                readonly property real bubLY: tgtGY - overlay.sy + off.y
+                readonly property real srcLX: srcMinX - overlay.sx + off.x
+                readonly property real srcLY: srcMinY - overlay.sy + off.y
                 readonly property real bubW: srcW * zf
                 readonly property real bubH: srcH * zf
                 readonly property real corner: Math.min(bubW, bubH) * 0.08
 
                 readonly property real srcCX: srcLX + srcW / 2
                 readonly property real srcCY: srcLY + srcH / 2
-                readonly property real bubCX: bubLX + bubW / 2
-                readonly property real bubCY: bubLY + bubH / 2
+                readonly property real bubLX: srcCX - bubW / 2
+                readonly property real bubLY: srcCY - bubH / 2
 
                 anchors.fill: parent
                 visible: valid && srcW > 0 && srcH > 0
-
-                Rectangle {
-                    x: zoomCell.srcLX
-                    y: zoomCell.srcLY
-                    width: zoomCell.srcW
-                    height: zoomCell.srcH
-                    radius: Math.min(zoomCell.srcW, zoomCell.srcH) * 0.08
-                    color: "transparent"
-                    border.color: overlay.vermilion
-                    border.width: 1.5
-                    antialiasing: true
-                }
-
-                Canvas {
-                    id: connector
-                    anchors.fill: parent
-                    visible: zoomCell.hasTarget
-                    onPaint: {
-                        var ctx = getContext("2d");
-                        ctx.reset();
-                        ctx.strokeStyle = Qt.rgba(overlay.vermilion.r, overlay.vermilion.g,
-                                                  overlay.vermilion.b, 0.55);
-                        ctx.lineWidth = 1.5;
-                        ctx.beginPath();
-                        ctx.moveTo(zoomCell.srcCX, zoomCell.srcCY);
-                        ctx.lineTo(zoomCell.bubCX, zoomCell.bubCY);
-                        ctx.stroke();
-                    }
-                    Connections {
-                        target: zoomCell
-                        function onSrcCXChanged() { connector.requestPaint(); }
-                        function onSrcCYChanged() { connector.requestPaint(); }
-                        function onBubCXChanged() { connector.requestPaint(); }
-                        function onBubCYChanged() { connector.requestPaint(); }
-                    }
-                }
 
                 Rectangle {
                     x: zoomCell.bubLX + 2
@@ -290,7 +250,6 @@ Item {
                     radius: zoomCell.corner
                     color: Qt.rgba(0, 0, 0, 0.28)
                     antialiasing: true
-                    visible: zoomCell.hasTarget
                 }
 
                 Item {
@@ -299,7 +258,6 @@ Item {
                     y: zoomCell.bubLY
                     width: zoomCell.bubW
                     height: zoomCell.bubH
-                    visible: zoomCell.hasTarget
                     layer.enabled: true
                     layer.effect: OpacityMask {
                         maskSource: Rectangle {
@@ -331,7 +289,6 @@ Item {
                     border.color: overlay.vermilion
                     border.width: 2
                     antialiasing: true
-                    visible: zoomCell.hasTarget
                 }
             }
         }

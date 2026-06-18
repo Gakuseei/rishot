@@ -81,20 +81,11 @@ mm.add({ type: "ellipse", points: [{ x: 1, y: 1 }, { x: 2, y: 2 }], color: "#fff
 eq(mm.canRedo(), false, "add after remove clears redo");
 
 const mz = create();
-mz.add({ type: "zoom", points: [{ x: 100, y: 100 }, { x: 200, y: 160 }], target: { x: 100, y: 170 }, zoom: 2 });
-eq(mz.moveTarget(0, 30, -10), true, "moveTarget returns true for zoom item");
-eq(mz.items[0].target, { x: 130, y: 160 }, "moveTarget shifts target only");
-eq(mz.items[0].points, [{ x: 100, y: 100 }, { x: 200, y: 160 }], "moveTarget leaves source points fixed");
+mz.add({ type: "zoom", points: [{ x: 100, y: 100 }, { x: 200, y: 160 }], zoom: 2 });
+eq(mz.move(0, 30, -10), true, "move returns true for zoom item");
+eq(mz.items[0].points, [{ x: 130, y: 90 }, { x: 230, y: 150 }], "move shifts zoom source points");
 mz.undo();
-eq(mz.items[0].target, { x: 100, y: 170 }, "undo moveTarget restores target");
-mz.redo();
-eq(mz.items[0].target, { x: 130, y: 160 }, "redo moveTarget re-applies");
-mz.add({ type: "rect", points: [{ x: 0, y: 0 }, { x: 5, y: 5 }], color: "#fff", width: 2 });
-eq(mz.moveTarget(1, 5, 5), false, "moveTarget false for non-zoom item");
-eq(mz.moveTarget(9, 1, 1), false, "moveTarget false for out-of-range index");
-const mzt = create();
-mzt.add({ type: "zoom", points: [{ x: 0, y: 0 }, { x: 10, y: 10 }], zoom: 2 });
-eq(mzt.moveTarget(0, 1, 1), false, "moveTarget false when target missing");
+eq(mz.items[0].points, [{ x: 100, y: 100 }, { x: 200, y: 160 }], "undo move restores zoom points");
 
 if (failed > 0) {
     console.log("\n" + failed + " test(s) FAILED");

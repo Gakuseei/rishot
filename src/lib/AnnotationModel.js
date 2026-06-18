@@ -30,22 +30,6 @@ function create() {
             return true;
         },
 
-        /**
-         * Shifts only the callout bubble of a zoom annotation, leaving its
-         * source rect (points) fixed. The new target may be passed pre-clamped
-         * by the caller so the bubble stays inside the capture region. Returns
-         * false for a non-zoom item or one lacking a target, so the caller can
-         * fall back to the points-based move().
-         */
-        moveTarget: function (index, dx, dy) {
-            if (index < 0 || index >= this.items.length) return false;
-            var a = this.items[index];
-            if (a.type !== "zoom" || !a.target) return false;
-            this.commit();
-            a.target = { x: a.target.x + dx, y: a.target.y + dy };
-            return true;
-        },
-
         remove: function (index) {
             if (index < 0 || index >= this.items.length) return false;
             this.commit();
