@@ -450,7 +450,7 @@ ShellRoot {
         stdout: StdioCollector { id: uploadOut }
         function run(file) {
             command = ["sh", "-c",
-                "out=$(curl -sf --max-time 30 -A \"Mozilla/5.0\" "
+                "out=$(curl -sf --proto '=https' --max-time 30 -A \"Mozilla/5.0\" "
                 + "-F reqtype=fileupload -F time=72h -F fileToUpload=@\"$1\" \"$2\"); "
                 + "rm -f \"$1\"; printf %s \"$out\"",
                 "_", file, root.uploadEndpoint];

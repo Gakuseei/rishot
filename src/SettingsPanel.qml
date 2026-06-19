@@ -56,7 +56,7 @@ Item {
             if (panel.pendingChord) {
                 var c = panel.pendingChord;
                 panel.pendingChord = null;
-                panel.applyBind(c.key, c.modifiers, c.text);
+                panel.applyBind(c.key, c.modifiers);
             }
         }
     }
@@ -103,19 +103,19 @@ Item {
      * written against a stale default flavor. Hyprland reload + rebound() fire
      * from the writer's onSaved.
      */
-    function applyBind(key, modifiers, text) {
-        var bind = Keymap.bindString(key, modifiers, text);
+    function applyBind(key, modifiers) {
+        var bind = Keymap.bindString(key, modifiers);
         if (bind === null) return;
         panel.listening = false;
         if (panel.detecting) {
-            panel.pendingChord = { key: key, modifiers: modifiers, text: text };
+            panel.pendingChord = { key: key, modifiers: modifiers };
             return;
         }
         if (panel.format === "lua") {
             panel.hotkey = bind;
             writer.setText(Keymap.luaFile(bind));
         } else {
-            var line = Keymap.confFile(key, modifiers, text);
+            var line = Keymap.confFile(key, modifiers);
             mkHyprDir.running = true;
             panel.hotkey = Keymap.parseConfBind(line) || bind;
             writer.setText(line);
@@ -386,7 +386,7 @@ Item {
                 return;
             }
             if (!panel.listening) return;
-            panel.applyBind(e.key, e.modifiers, e.text);
+            panel.applyBind(e.key, e.modifiers);
         }
     }
 }

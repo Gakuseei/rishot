@@ -1,5 +1,5 @@
 #!/bin/sh
-# rishot — Wayland screenshot + annotation overlay (Quickshell).
+# rishot - Wayland screenshot + annotation overlay (Quickshell).
 # Launches the overlay on the current output set. Bind this command to a key
 # in your compositor config (see README). Region mode also lets you click a
 # single window to grab it.
@@ -8,7 +8,7 @@ set -eu
 
 usage() {
 	cat <<'EOF'
-rishot — screenshot + annotate
+rishot - screenshot + annotate
 
 usage: rishot [mode]
 
@@ -21,8 +21,9 @@ options:
 
 env:
   RISHOT_CONFIG_DIR  override the Quickshell config dir (must hold shell.qml)
-  RISHOT_UPLOAD      override the upload endpoint (curl form-post target)
+  RISHOT_UPLOAD      override the upload endpoint (https form-post target)
   RISHOT_SAVEDIR     override the auto-save directory
+  RISHOT_KEYBIND_FILE  write the in-app rebind here instead of autodetecting
 EOF
 }
 

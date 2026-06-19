@@ -42,7 +42,7 @@ var PUNCT = {
     0x5b: "bracketleft", 0x5d: "bracketright", 0x2d: "minus", 0x3d: "equal"
 };
 
-function keyName(key, text) {
+function keyName(key) {
     if (MODIFIER_KEYS[key]) return null;
     if (NAMED_KEYS[key]) return NAMED_KEYS[key];
     if (PUNCT[key]) return PUNCT[key];
@@ -59,8 +59,8 @@ function modNames(modifiers) {
     return out;
 }
 
-function bindString(key, modifiers, text) {
-    var k = keyName(key, text);
+function bindString(key, modifiers) {
+    var k = keyName(key);
     if (k === null) return null;
     var parts = modNames(modifiers);
     parts.push(k);
@@ -80,21 +80,21 @@ function parseBind(luaText) {
     return m ? m[1] : null;
 }
 
-function confLine(key, modifiers, text) {
-    var k = keyName(key, text);
+function confLine(key, modifiers) {
+    var k = keyName(key);
     if (k === null) return null;
     var mods = modNames(modifiers).join(" ");
     return "bind = " + mods + ", " + k + ", exec, rishot";
 }
 
-function confFile(key, modifiers, text) {
-    var line = confLine(key, modifiers, text);
+function confFile(key, modifiers) {
+    var line = confLine(key, modifiers);
     return line === null ? null : line + "\n";
 }
 
-function bindLineFor(format, key, modifiers, text) {
-    if (format === "conf") return confFile(key, modifiers, text);
-    var bind = bindString(key, modifiers, text);
+function bindLineFor(format, key, modifiers) {
+    if (format === "conf") return confFile(key, modifiers);
+    var bind = bindString(key, modifiers);
     return bind === null ? null : luaFile(bind);
 }
 
