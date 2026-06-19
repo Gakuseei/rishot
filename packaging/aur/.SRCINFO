@@ -1,6 +1,6 @@
 pkgbase = rishot-git
 	pkgdesc = Wayland screenshot and annotation overlay built on Quickshell
-	pkgver = r8
+	pkgver = r27.2a6f68c
 	pkgrel = 1
 	url = https://github.com/Gakuseei/rishot
 	arch = any

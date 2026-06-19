@@ -2,8 +2,6 @@
 
 A screenshot and annotation overlay for Wayland, built on [Quickshell](https://quickshell.outfoxxed.me/). Drag a region, click a window, or grab a whole monitor, mark it up, then copy, save, or upload it. rishot started as the screenshot surface inside my Hyprland rice, [Ricelin](https://github.com/Gakuseei/Ricelin), and now runs on its own.
 
-![rishot in action](assets/demo.png)
-
 ## Compositor support
 
 Capture works on any wlroots or Wayland compositor that speaks `wlr-screencopy` or `ext-image-copy-capture`. Wherever capture works, so do region selection, monitor selection, and every annotation tool. Window-click selection (click one window to grab just its frame) needs a per-compositor query, and rishot ships those for Hyprland, Sway, and Niri. Everywhere else it falls back to region and monitor selection.
@@ -23,20 +21,13 @@ Any other wlroots compositor lands in the river row: capture plus region and mon
 
 - Region, window, and monitor capture
 - Resize the selection after capture with corner and edge handles
-- Tools: rectangle, ellipse, line, arrow, pen, highlighter, text, numbered steps, blur, pixelate
+- Tools: rectangle, ellipse, line, arrow, pen, highlighter, text, numbered steps, blur, pixelate, zoom
+- Per-tool memory: each tool keeps its own colour and stroke width
 - Undo and redo
 - Copy to clipboard, save to disk, or upload
-- A settings panel for pixelate block size, blur strength, and rebinding the key on Hyprland
-
-![Toolbar and tools](assets/toolbar.png)
+- A settings panel for pixelate coarseness, blur strength, zoom factor, and rebinding the key on Hyprland
 
 ## Install
-
-### AUR (Arch, primary)
-
-```sh
-yay -S rishot-git
-```
 
 ### One-line installer
 
