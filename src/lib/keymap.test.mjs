@@ -1,7 +1,8 @@
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { keyName, bindString, luaFile, parseBind,
-    confLine, confFile, bindLineFor, parseConfBind } = require("./keymap.js");
+    confLine, confFile, bindLineFor, replaceLuaBind, replaceConfBind,
+    parseConfBind } = require("./keymap.js");
 
 const K = {
     Print: 0x01000009, Escape: 0x01000000, Tab: 0x01000001, Return: 0x01000004,
@@ -97,6 +98,27 @@ eq(bindString(K.Shift, 0, ""), null, "bare Shift chord -> null (recorder keeps l
 eq(bindString(K.Control, M.CTRL, ""), null,
     "Ctrl held, Ctrl key down -> null (recorder must not cancel on a modifier)");
 eq(bindString(K.Meta, M.SUPER, ""), null, "Super held, Super key down -> null");
+
+const luaTwo = 'hl.bind("Print", hl.dsp.exec_cmd("rishot"))\n'
+    + 'hl.bind("SHIFT + Print", hl.dsp.exec_cmd("rishot monitor"))\n';
+eq(replaceLuaBind(luaTwo, "SUPER + s"),
+    'hl.bind("SUPER + s", hl.dsp.exec_cmd("rishot"))\n'
+    + 'hl.bind("SHIFT + Print", hl.dsp.exec_cmd("rishot monitor"))\n',
+    "replaceLuaBind swaps the region bind and keeps the monitor bind");
+eq(replaceLuaBind("", "Print"), 'hl.bind("Print", hl.dsp.exec_cmd("rishot"))\n',
+    "replaceLuaBind on an empty file writes the region bind");
+eq(replaceLuaBind('local x = 1\n', "Print"),
+    'local x = 1\nhl.bind("Print", hl.dsp.exec_cmd("rishot"))\n',
+    "replaceLuaBind appends below unrelated lines");
+
+const confTwo = "bind = , Print, exec, rishot\n"
+    + "bind = SHIFT, Print, exec, rishot monitor\n";
+eq(replaceConfBind(confTwo, 0x53, M.SUPER),
+    "bind = SUPER, s, exec, rishot\n"
+    + "bind = SHIFT, Print, exec, rishot monitor\n",
+    "replaceConfBind swaps the region bind and keeps the monitor bind");
+eq(replaceConfBind("", K.Print, 0), "bind = , Print, exec, rishot\n",
+    "replaceConfBind on an empty file writes the region bind");
 
 if (failed > 0) { console.log("\n" + failed + " test(s) FAILED"); process.exit(1); }
 console.log("\nAll tests PASSED");

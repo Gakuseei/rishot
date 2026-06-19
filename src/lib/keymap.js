@@ -98,6 +98,23 @@ function bindLineFor(format, key, modifiers) {
     return bind === null ? null : luaFile(bind);
 }
 
+function replaceLuaBind(existing, bind) {
+    var line = luaLine(bind);
+    var re = /^[^\n]*exec_cmd\("rishot"\)[^\n]*$/m;
+    if (re.test(existing)) return existing.replace(re, line);
+    var sep = (existing.length && existing.charAt(existing.length - 1) !== "\n") ? "\n" : "";
+    return existing + sep + line + "\n";
+}
+
+function replaceConfBind(existing, key, modifiers) {
+    var line = confLine(key, modifiers);
+    if (line === null) return null;
+    var re = /^bind\s*=.*,\s*exec\s*,\s*rishot\s*$/m;
+    if (re.test(existing)) return existing.replace(re, line);
+    var sep = (existing.length && existing.charAt(existing.length - 1) !== "\n") ? "\n" : "";
+    return existing + sep + line + "\n";
+}
+
 function parseConfBind(confText) {
     var m = /bind\s*=\s*([^,]*),\s*([^,]+),\s*exec\s*,\s*rishot/.exec(confText);
     if (!m) return null;
@@ -111,5 +128,6 @@ if (typeof module !== "undefined" && module.exports) {
     module.exports = { keyName: keyName, modNames: modNames, bindString: bindString,
         luaLine: luaLine, luaFile: luaFile, parseBind: parseBind,
         confLine: confLine, confFile: confFile, bindLineFor: bindLineFor,
+        replaceLuaBind: replaceLuaBind, replaceConfBind: replaceConfBind,
         parseConfBind: parseConfBind };
 }

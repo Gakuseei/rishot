@@ -25,6 +25,7 @@ Item {
     property string detectedFlavor: "conf"
     property bool detecting: false
     property var pendingChord: null
+    property string currentText: ""
 
     readonly property string format: panel.luaPath !== ""
         ? (panel.luaPath.endsWith(".conf") ? "conf" : "lua")
@@ -70,6 +71,7 @@ Item {
         id: reader
         path: panel.bindTarget
         onLoaded: {
+            panel.currentText = text();
             var b = panel.format === "lua" ? Keymap.parseBind(text()) : Keymap.parseConfBind(text());
             if (b) panel.hotkey = b;
         }
@@ -111,14 +113,12 @@ Item {
             panel.pendingChord = { key: key, modifiers: modifiers };
             return;
         }
+        panel.hotkey = bind;
         if (panel.format === "lua") {
-            panel.hotkey = bind;
-            writer.setText(Keymap.luaFile(bind));
+            writer.setText(Keymap.replaceLuaBind(panel.currentText, bind));
         } else {
-            var line = Keymap.confFile(key, modifiers);
             mkHyprDir.running = true;
-            panel.hotkey = Keymap.parseConfBind(line) || bind;
-            writer.setText(line);
+            writer.setText(Keymap.replaceConfBind(panel.currentText, key, modifiers));
         }
     }
 
@@ -222,10 +222,10 @@ Item {
             Section {
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: "Pixelate block size" }
+                    Label { text: "Pixelate coarseness" }
                     Item { Layout.fillWidth: true }
                     Label {
-                        text: Config.mosaicFactor + "px"
+                        text: Config.mosaicFactor
                         color: panel.vermilion
                     }
                 }
@@ -235,6 +235,13 @@ Item {
                     value: Config.mosaicFactor
                     onMoved: (v) => Config.mosaicFactor = v
                     onCommitted: Config.save()
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: "bigger = chunkier censor blocks for the pixelate tool"
+                    color: Theme.dimIcon
+                    font.pixelSize: 11
+                    wrapMode: Text.WordWrap
                 }
             }
 
@@ -254,6 +261,13 @@ Item {
                     value: Config.blurRadius
                     onMoved: (v) => Config.blurRadius = v
                     onCommitted: Config.save()
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: "higher = softer blur for the blur tool"
+                    color: Theme.dimIcon
+                    font.pixelSize: 11
+                    wrapMode: Text.WordWrap
                 }
             }
 
@@ -332,7 +346,7 @@ Item {
                 Label {
                     visible: panel.isHyprland && panel.format === "lua"
                     Layout.fillWidth: true
-                    text: 'add: require("rishot")'
+                    text: 'add require("rishot") to hyprland.lua, then restart Hyprland to apply'
                     color: Theme.dimIcon
                     font.pixelSize: 11
                     wrapMode: Text.WordWrap
