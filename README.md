@@ -92,10 +92,10 @@ Optional: `imagemagick` (multi-monitor stitch), `cliphist` (clip history), `curl
 
 <details><summary>Environment variables</summary>
 
-- `RISHOT_CONFIG_DIR` — the Quickshell config dir (the one holding `shell.qml`)
-- `RISHOT_SAVEDIR` — the auto-save directory
-- `RISHOT_UPLOAD` — the upload endpoint (curl form-post target)
-- `RISHOT_KEYBIND_FILE` — file the rebind line is written into, taken as given (written verbatim, so point it at a dedicated include file)
+- `RISHOT_CONFIG_DIR`: the Quickshell config dir (the one holding `shell.qml`)
+- `RISHOT_SAVEDIR`: the auto-save directory
+- `RISHOT_UPLOAD`: the upload endpoint (curl form-post target)
+- `RISHOT_KEYBIND_FILE`: file the rebind line is written into, taken as given (written verbatim, so point it at a dedicated include file)
 
 Rebinding from the settings panel on Hyprland writes a matching conf or lua line into its own include file, never your main config.
 
