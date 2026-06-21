@@ -175,7 +175,11 @@ install_files() {
 		if ! have git; then die "git is required to fetch rishot (or run install.sh from a checkout)"; fi
 		say "Fetching rishot into $PREFIX …"
 		if [ -d "$PREFIX/.git" ]; then
-			git -C "$PREFIX" pull --ff-only
+			git -C "$PREFIX" pull --ff-only || {
+				warn "update pull failed; re-cloning a fresh copy"
+				rm -rf "${PREFIX:?}"
+				git clone --depth 1 "$REPO_URL" "$PREFIX"
+			}
 		else
 			rm -rf "${PREFIX:?}"
 			git clone --depth 1 "$REPO_URL" "$PREFIX"
