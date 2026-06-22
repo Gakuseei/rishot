@@ -38,7 +38,7 @@ detect_pm() {
 print_manual_deps() {
 	say "Install these yourself, then re-run:"
 	say "  required: quickshell, wl-clipboard, qt6-declarative, qt6-svg, qt6-5compat, qt6-wayland"
-	say "  optional: imagemagick, cliphist, curl, kdialog"
+	say "  optional: imagemagick, cliphist, curl, kdialog, libnotify"
 	say "quickshell lives in: Arch extra, Debian/Ubuntu, Fedora COPR errornointernet/quickshell, NixOS, Void."
 }
 
@@ -77,7 +77,7 @@ install_deps() {
 		say "Installing deps via $pm (quickshell from extra or AUR)…"
 		"$pm" -S --needed --noconfirm quickshell wl-clipboard \
 			qt6-declarative qt6-svg qt6-5compat qt6-wayland || return 1
-		install_optionals "$pm" imagemagick cliphist curl kdialog
+		install_optionals "$pm" imagemagick cliphist curl kdialog libnotify
 		;;
 	pacman)
 		say "Installing deps via pacman…"
@@ -90,7 +90,7 @@ install_deps() {
 				return 1
 			}
 		fi
-		install_optionals pacman imagemagick cliphist curl kdialog
+		install_optionals pacman imagemagick cliphist curl kdialog libnotify
 		;;
 	apt)
 		say "Installing deps via apt…"
@@ -101,7 +101,7 @@ install_deps() {
 		sudo apt-get update || true
 		sudo apt-get install -y quickshell wl-clipboard \
 			libqt6svg6 qt6-wayland || return 1
-		install_optionals apt imagemagick cliphist curl kdialog
+		install_optionals apt imagemagick cliphist curl kdialog libnotify-bin
 		;;
 	dnf)
 		say "Installing deps via dnf…"
@@ -109,18 +109,27 @@ install_deps() {
 			qt6-qtdeclarative qt6-qtsvg qt6-qt5compat qt6-qtwayland \
 			|| warn "some dnf deps failed"
 		# quickshell is in official Fedora 44+/Rawhide; older Fedora needs the
-		# COPR errornointernet/quickshell, which a Qt version mismatch can break.
+		# third-party COPR errornointernet/quickshell. Adding a non-Fedora repo and
+		# installing from it as root is a trust decision, so we never do it silently
+		# in a curl|sh pipe. Print the two commands, or honor an explicit opt-in.
 		if ! sudo dnf install -y quickshell; then
-			warn "quickshell not in your repos; adding the third-party COPR errornointernet/quickshell"
-			say "  running: sudo dnf -y copr enable errornointernet/quickshell"
-			sudo dnf -y copr enable errornointernet/quickshell || \
-				warn "could not enable the quickshell COPR automatically"
-			sudo dnf install -y quickshell || {
-				warn "if 'qs' fails to start, check the COPR build vs your Qt6 version"
+			if [ "${RISHOT_ENABLE_COPR:-0}" = 1 ]; then
+				warn "enabling third-party COPR errornointernet/quickshell (RISHOT_ENABLE_COPR=1)"
+				if sudo dnf -y copr enable errornointernet/quickshell && sudo dnf install -y quickshell; then
+					:
+				else
+					warn "COPR install failed; check the COPR build vs your Qt6 version"
+					return 1
+				fi
+			else
+				warn "quickshell is not in your Fedora repos. The community COPR has it:"
+				say "  sudo dnf copr enable errornointernet/quickshell"
+				say "  sudo dnf install quickshell"
+				say "or re-run this installer with RISHOT_ENABLE_COPR=1 to add it for you"
 				return 1
-			}
+			fi
 		fi
-		install_optionals dnf ImageMagick cliphist curl kdialog
+		install_optionals dnf ImageMagick cliphist curl kdialog libnotify
 		;;
 	zypper)
 		say "Installing deps via zypper…"
@@ -132,14 +141,14 @@ install_deps() {
 			warn "(e.g. home:AvengeMedia:danklinux), then install 'quickshell'"
 			return 1
 		}
-		install_optionals zypper ImageMagick cliphist curl kdialog
+		install_optionals zypper ImageMagick cliphist curl kdialog libnotify-tools
 		;;
 	xbps)
 		say "Installing deps via xbps…"
 		# Void names the 5compat module qt6-qt5compat (not qt6-5compat).
 		sudo xbps-install -Sy quickshell wl-clipboard \
 			qt6-declarative qt6-svg qt6-qt5compat qt6-wayland || return 1
-		install_optionals xbps ImageMagick cliphist curl kdialog
+		install_optionals xbps ImageMagick cliphist curl kdialog libnotify
 		;;
 	nix)
 		warn "Nix detected. This installer will not mutate a Nix system."
@@ -166,7 +175,7 @@ install_files() {
 		self_dir=$(unset CDPATH && cd -- "$(dirname -- "$0")" && pwd)
 	fi
 
-	if [ -n "$self_dir" ] && [ -d "$self_dir/src" ] && [ -f "$self_dir/bin/rishot" ]; then
+	if [ -n "$self_dir" ] && [ -f "$self_dir/install.sh" ] && [ -d "$self_dir/src" ] && [ -f "$self_dir/bin/rishot" ]; then
 		say "Installing from checkout: $self_dir"
 		rm -rf "${PREFIX:?}/src" "${PREFIX:?}/bin"
 		cp -R "$self_dir/src" "$PREFIX/src"

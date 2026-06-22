@@ -60,7 +60,11 @@ command -v qs >/dev/null 2>&1 || {
 # Single instance: a second press while the overlay is up is a no-op. The lock
 # is held on fd 9 for the lifetime of qs; clipboard daemons that qs spawns close
 # fd 9 (see shell.qml) so a backgrounded wl-copy cannot pin the lock after exit.
-lock="${XDG_RUNTIME_DIR:-/tmp}/rishot.lock"
+# Keep the lock in a user-owned dir: XDG_RUNTIME_DIR is per-user 0700, and the
+# ~/.cache fallback avoids the world-writable /tmp symlink-follow on shared boxes.
+rundir="${XDG_RUNTIME_DIR:-$HOME/.cache}"
+mkdir -p "$rundir" 2>/dev/null || rundir="/tmp"
+lock="$rundir/rishot.lock"
 exec 9>"$lock"
 flock -n 9 || { echo "rishot: already running" >&2; exit 0; }
 exec env RISHOT_MODE="$mode" qs -p "$dir"
