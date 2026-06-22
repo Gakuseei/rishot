@@ -1,9 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
   <g fill="#e0563b">
-    <rect x="6" y="13" width="52" height="6" rx="2"/>
-    <rect x="14" y="24" width="36" height="5" rx="1.5"/>
-    <rect x="30" y="19" width="4" height="6"/>
-    <rect x="18" y="13" width="6" height="39" rx="1.5"/>
-    <rect x="40" y="13" width="6" height="39" rx="1.5"/>
+    <path d="M4 16 Q32 8 60 16 L60 24 Q32 18 4 24 Z"/>
+    <rect x="16" y="24" width="8" height="32"/>
+    <rect x="40" y="24" width="8" height="32"/>
+    <rect x="12" y="28" width="40" height="8"/>
   </g>
 </svg>
