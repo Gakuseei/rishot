@@ -463,10 +463,17 @@ ShellRoot {
         onExited: () => Qt.quit()
     }
 
+    /**
+     * Copy honours the "save a copy on disk" setting. When off the shot lands in
+     * a throwaway tmp file that copyProc deletes after it reaches the clipboard,
+     * so a plain copy leaves no screenshot behind. When on it writes to the
+     * normal shots dir and keeps it, same as save.
+     */
     function doCopy() {
-        var auto = defaultPath;
-        grabTo(auto, function (ok) {
-            if (ok) copyProc.run(auto);
+        var keep = Config.copyToDisk;
+        var target = keep ? defaultPath : (root.tmpDir + "/rishot-copy.png");
+        grabTo(target, function (ok) {
+            if (ok) copyProc.run(target, keep);
             else root.finish("Capture failed", "", true, "");
         });
     }
@@ -518,21 +525,25 @@ ShellRoot {
     Process {
         id: copyProc
         property string file: ""
-        function run(f) {
+        property bool keep: true
+        function run(f, keepFile) {
             file = f;
+            keep = keepFile;
             command = ["sh", "-c",
                 "exec 9>&-; wl-copy --type image/png < \"$1\"; "
-                + "command -v cliphist >/dev/null 2>&1 || exit 0; "
+                + "if command -v cliphist >/dev/null 2>&1; then "
                 + "if [ \"$(stat -c%s \"$1\")\" -ge 4900000 ]; then "
                 + "command -v magick >/dev/null 2>&1 && magick \"$1\" -quality 92 jpeg:- | cliphist store; "
-                + "else cliphist store < \"$1\"; fi",
-                "_", f];
+                + "else cliphist store < \"$1\"; fi; fi; "
+                + "[ \"$2\" = keep ] || rm -f \"$1\"",
+                "_", f, keep ? "keep" : "drop"];
             running = true;
         }
         onExited: (code) => {
             console.log("rishot: wl-copy exit " + code);
-            if (code === 0) root.finish("Screenshot copied", root.pretty(file), false, file);
-            else root.finish("Copy failed", "", true, "");
+            if (code !== 0) { root.finish("Copy failed", "", true, ""); return; }
+            if (keep) root.finish("Screenshot copied", root.pretty(file), false, file);
+            else root.finish("Copied to clipboard", "", false, "");
         }
     }
 

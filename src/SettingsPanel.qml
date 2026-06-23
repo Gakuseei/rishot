@@ -136,6 +136,36 @@ Item {
         font.pixelSize: 12
     }
 
+    component Toggle: Item {
+        id: tg
+        property bool checked: false
+        signal toggled(bool v)
+
+        implicitWidth: 38
+        implicitHeight: 22
+
+        Rectangle {
+            anchors.fill: parent
+            radius: height / 2
+            color: tg.checked ? panel.vermilion : Qt.rgba(1, 1, 1, 0.10)
+            border.color: tg.checked ? panel.vermilion : panel.glassBorder
+            border.width: 1
+            Behavior on color { ColorAnimation { duration: 120 } }
+
+            Rectangle {
+                width: 16
+                height: 16
+                radius: 8
+                anchors.verticalCenter: parent.verticalCenter
+                x: tg.checked ? parent.width - width - 3 : 3
+                color: Theme.white
+                Behavior on x { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+            }
+        }
+
+        TapHandler { onTapped: tg.toggled(!tg.checked) }
+    }
+
     component Slider: Item {
         id: slider
         property int from: 0
@@ -276,6 +306,25 @@ Item {
                     value: Math.round(Config.zoomFactor * 10)
                     onMoved: (v) => Config.zoomFactor = Math.round(v / 5) / 2
                     onCommitted: Config.save()
+                }
+            }
+
+            Section {
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label { text: "Save a copy on disk" }
+                    Item { Layout.fillWidth: true }
+                    Toggle {
+                        checked: Config.copyToDisk
+                        onToggled: (v) => { Config.copyToDisk = v; Config.save(); }
+                    }
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: "off keeps copy in the clipboard only"
+                    color: Theme.dimIcon
+                    font.pixelSize: 11
+                    wrapMode: Text.WordWrap
                 }
             }
 
