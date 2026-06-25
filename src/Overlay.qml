@@ -39,6 +39,7 @@ Item {
     signal movedTo(real gx, real gy)
     signal hovered(real gx, real gy)
     signal released()
+    signal wheelStep(int dir)
     signal captureTimedOut()
     signal textChanged(string t)
     signal textCommitted()
@@ -533,6 +534,7 @@ Item {
             else overlay.hovered(m.x + overlay.sx, m.y + overlay.sy);
         }
         onReleased: overlay.released()
+        onWheel: (w) => { if (w.angleDelta.y !== 0) overlay.wheelStep(w.angleDelta.y > 0 ? 1 : -1); w.accepted = true; }
     }
 
     /**

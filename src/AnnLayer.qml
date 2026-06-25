@@ -168,7 +168,7 @@ Item {
                 ShapePath {
                     strokeColor: cell.valid ? canvas.strokeColorOf(cell.a) : "transparent"
                     strokeWidth: cell.valid ? canvas.strokeWidthOf(cell.a) : 0
-                    fillColor: "transparent"
+                    fillColor: (cell.valid && cell.a.filled === true) ? cell.a.color : "transparent"
                     capStyle: ShapePath.RoundCap
                     joinStyle: ShapePath.RoundJoin
                     startX: ellShape.eg ? ellShape.eg.cx - ellShape.eg.rx : 0

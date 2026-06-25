@@ -13,6 +13,7 @@ Item {
 
     signal closeRequested()
     signal rebound()
+    signal pickSaveDir()
 
     readonly property color glassBg: Theme.panelBg
     readonly property color glassBorder: Theme.panelBorder
@@ -132,8 +133,45 @@ Item {
 
     component Label: Text {
         color: panel.idle
+        font.family: Theme.sansFamily
+        font.pixelSize: 13
+    }
+
+    /** Small uppercase heading that opens each settings group. */
+    component GroupLabel: Text {
+        Layout.fillWidth: true
+        Layout.bottomMargin: 2
+        color: Theme.dimIcon
         font.family: Theme.monoFamily
-        font.pixelSize: 12
+        font.pixelSize: 10
+        font.bold: true
+        font.letterSpacing: 1.4
+        font.capitalization: Font.AllUppercase
+    }
+
+    /** The bright accent reading on the right of a slider row. */
+    component Value: Text {
+        color: panel.vermilion
+        font.family: Theme.monoFamily
+        font.pixelSize: 13
+        font.bold: true
+    }
+
+    component Divider: Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 1
+        Layout.topMargin: 4
+        Layout.bottomMargin: 4
+        color: Theme.sep
+    }
+
+    component Hint: Text {
+        Layout.fillWidth: true
+        Layout.topMargin: 3
+        color: Theme.dimIcon
+        font.family: Theme.sansFamily
+        font.pixelSize: 11
+        wrapMode: Text.WordWrap
     }
 
     component Toggle: Item {
@@ -240,27 +278,49 @@ Item {
         color: panel.glassBg
         border.color: panel.glassBorder
         border.width: 1
-        implicitWidth: 240
-        implicitHeight: content.implicitHeight + 24
+        implicitWidth: 300
+        implicitHeight: content.implicitHeight + 32
 
         ColumnLayout {
             id: content
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            anchors.leftMargin: 14
-            anchors.rightMargin: 14
+            anchors.leftMargin: 18
+            anchors.rightMargin: 18
             spacing: 14
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.bottomMargin: 2
+                spacing: 9
+
+                Image {
+                    source: Qt.resolvedUrl("rishot.svg")
+                    sourceSize.width: 18
+                    sourceSize.height: 18
+                    Layout.preferredWidth: 18
+                    Layout.preferredHeight: 18
+                }
+                Text {
+                    text: '<font color="#e0563b">rishot</font> settings'
+                    textFormat: Text.StyledText
+                    color: Theme.white
+                    font.family: Theme.sansFamily
+                    font.pixelSize: 14
+                    font.weight: Font.Medium
+                }
+                Item { Layout.fillWidth: true }
+            }
+
+            GroupLabel { text: "Effects" }
 
             Section {
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: "Pixelate coarseness" }
+                    Label { text: "Pixelate" }
                     Item { Layout.fillWidth: true }
-                    Label {
-                        text: Config.mosaicFactor
-                        color: panel.vermilion
-                    }
+                    Value { text: Config.mosaicFactor }
                 }
                 Slider {
                     from: 4
@@ -274,12 +334,9 @@ Item {
             Section {
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: "Blur strength" }
+                    Label { text: "Blur" }
                     Item { Layout.fillWidth: true }
-                    Label {
-                        text: Config.blurRadius
-                        color: panel.vermilion
-                    }
+                    Value { text: Config.blurRadius }
                 }
                 Slider {
                     from: 8
@@ -293,12 +350,9 @@ Item {
             Section {
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: "Zoom factor" }
+                    Label { text: "Zoom" }
                     Item { Layout.fillWidth: true }
-                    Label {
-                        text: "×" + Config.zoomFactor.toFixed(1)
-                        color: panel.vermilion
-                    }
+                    Value { text: "×" + Config.zoomFactor.toFixed(1) }
                 }
                 Slider {
                     from: 15
@@ -309,104 +363,136 @@ Item {
                 }
             }
 
-            Section {
-                RowLayout {
-                    Layout.fillWidth: true
-                    Label { text: "Save a copy on disk" }
-                    Item { Layout.fillWidth: true }
-                    Toggle {
-                        checked: Config.copyToDisk
-                        onToggled: (v) => { Config.copyToDisk = v; Config.save(); }
-                    }
-                }
-                Label {
-                    Layout.fillWidth: true
-                    text: "off keeps copy in the clipboard only"
-                    color: Theme.dimIcon
-                    font.pixelSize: 11
-                    wrapMode: Text.WordWrap
-                }
-            }
+            Divider {}
 
-            Rectangle {
+            GroupLabel { text: "Saving" }
+
+            RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 1
-                color: Theme.sep
+                Label { text: "Keep a copy on disk" }
+                Item { Layout.fillWidth: true }
+                Toggle {
+                    checked: Config.copyToDisk
+                    onToggled: (v) => { Config.copyToDisk = v; Config.save(); }
+                }
             }
 
-            Section {
-                Label { text: "Shortcut" }
+            RowLayout {
+                Layout.fillWidth: true
+                Label { text: "Save without dialog" }
+                Item { Layout.fillWidth: true }
+                Toggle {
+                    checked: Config.skipSaveDialog
+                    onToggled: (v) => { Config.skipSaveDialog = v; Config.save(); }
+                }
+            }
 
-                RowLayout {
-                    visible: panel.isHyprland
+            RowLayout {
+                visible: Config.skipSaveDialog
+                Layout.fillWidth: true
+                spacing: 10
+
+                Text {
                     Layout.fillWidth: true
-                    spacing: 10
+                    text: Config.saveDir !== "" ? Config.saveDir : "~/Pictures/Screenshots"
+                    color: Theme.dimIcon
+                    font.family: Theme.monoFamily
+                    font.pixelSize: 11
+                    elide: Text.ElideMiddle
+                }
+
+                Rectangle {
+                    id: pickBtn
+                    Layout.preferredHeight: 28
+                    Layout.preferredWidth: pickLabel.implicitWidth + 22
+                    radius: 6
+                    color: pickHover.hovered ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.06)
+                    border.color: panel.glassBorder
+                    border.width: 1
 
                     Text {
-                        text: panel.hotkey
+                        id: pickLabel
+                        anchors.centerIn: parent
+                        text: "Choose…"
                         color: panel.idle
                         font.family: Theme.monoFamily
+                        font.pixelSize: 12
+                    }
+
+                    HoverHandler { id: pickHover }
+                    TapHandler { onTapped: panel.pickSaveDir() }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Label { text: "Copy to clipboard on save" }
+                Item { Layout.fillWidth: true }
+                Toggle {
+                    checked: Config.copyOnSave
+                    onToggled: (v) => { Config.copyOnSave = v; Config.save(); }
+                }
+            }
+
+            Divider {}
+
+            GroupLabel { text: "Shortcut" }
+
+            RowLayout {
+                visible: panel.isHyprland
+                Layout.fillWidth: true
+                spacing: 12
+
+                Text {
+                    text: panel.hotkey
+                    color: panel.idle
+                    font.family: Theme.monoFamily
+                    font.pixelSize: 13
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Rectangle {
+                    id: recBtn
+                    Layout.preferredHeight: 28
+                    Layout.preferredWidth: recLabel.implicitWidth + 24
+                    radius: 6
+                    color: panel.listening ? panel.vermilion
+                        : (recHover.hovered ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.06))
+                    border.color: panel.listening ? panel.vermilion : panel.glassBorder
+                    border.width: 1
+
+                    Text {
+                        id: recLabel
+                        anchors.centerIn: parent
+                        text: panel.listening ? "Press a key…" : "Record"
+                        color: panel.listening ? Theme.white : panel.idle
+                        font.family: Theme.monoFamily
                         font.pixelSize: 13
-                        verticalAlignment: Text.AlignVCenter
                     }
 
-                    Item { Layout.fillWidth: true }
-
-                    Rectangle {
-                        id: recBtn
-                        Layout.preferredHeight: 28
-                        Layout.preferredWidth: recLabel.implicitWidth + 24
-                        radius: 6
-                        color: panel.listening ? panel.vermilion
-                            : (recHover.hovered ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.06))
-                        border.color: panel.listening ? panel.vermilion : panel.glassBorder
-                        border.width: 1
-
-                        Text {
-                            id: recLabel
-                            anchors.centerIn: parent
-                            text: panel.listening ? "Press a key…" : "Record"
-                            color: panel.listening ? Theme.white : panel.idle
-                            font.family: Theme.monoFamily
-                            font.pixelSize: 13
-                        }
-
-                        HoverHandler { id: recHover }
-                        TapHandler {
-                            onTapped: {
-                                panel.listening = !panel.listening;
-                                if (panel.listening) keyCatcher.forceActiveFocus();
-                            }
+                    HoverHandler { id: recHover }
+                    TapHandler {
+                        onTapped: {
+                            panel.listening = !panel.listening;
+                            if (panel.listening) keyCatcher.forceActiveFocus();
                         }
                     }
                 }
+            }
 
-                Label {
-                    visible: panel.isHyprland && panel.format === "lua"
-                    Layout.fillWidth: true
-                    text: 'add require("rishot") to hyprland.lua, then restart Hyprland to apply'
-                    color: Theme.dimIcon
-                    font.pixelSize: 11
-                    wrapMode: Text.WordWrap
-                }
-
-                Label {
-                    visible: panel.isHyprland && panel.format === "conf"
-                    Layout.fillWidth: true
-                    text: "add: source = ~/.config/hypr/rishot.conf"
-                    color: Theme.dimIcon
-                    font.pixelSize: 11
-                    wrapMode: Text.WordWrap
-                }
-
-                Label {
-                    visible: !panel.isHyprland
-                    Layout.fillWidth: true
-                    text: "bind 'rishot' to a key in your compositor config"
-                    color: Theme.dimIcon
-                    font.pixelSize: 11
-                    wrapMode: Text.WordWrap
-                }
+            Hint {
+                visible: panel.isHyprland && panel.format === "lua"
+                text: 'add require("rishot") to hyprland.lua, then restart Hyprland to apply'
+            }
+            Hint {
+                visible: panel.isHyprland && panel.format === "conf"
+                text: "add: source = ~/.config/hypr/rishot.conf"
+            }
+            Hint {
+                visible: !panel.isHyprland
+                text: "bind 'rishot' to a key in your compositor config"
             }
         }
     }

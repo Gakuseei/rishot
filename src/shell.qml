@@ -17,6 +17,7 @@ ShellRoot {
     property string activeTool: "rect"
     property color activeColor: Theme.vermilion
     property int activeWidth: 4
+    property bool activeFill: false
     property var toolStyle: ({})
 
     property var model: Ann.create()
@@ -63,20 +64,69 @@ ShellRoot {
         var s = toolStyle[t];
         activeColor = s ? s.color : Theme.vermilion;
         activeWidth = s ? s.width : 4;
+        activeFill = s ? (s.filled === true) : false;
+    }
+
+    /** True for the closed shapes whose fill toggle is meaningful. */
+    function toolHasFill(t) { return t === "rect" || t === "ellipse"; }
+
+    function styleEntry() {
+        return { color: String(activeColor), width: activeWidth, filled: activeFill };
     }
 
     function setToolColor(c) {
         activeColor = c;
         var s = Object.assign({}, toolStyle);
-        s[activeTool] = { color: c, width: activeWidth };
+        s[activeTool] = styleEntry();
         toolStyle = s;
+        persistToolStyle();
     }
 
     function setToolWidth(w) {
         activeWidth = w;
         var s = Object.assign({}, toolStyle);
-        s[activeTool] = { color: activeColor, width: w };
+        s[activeTool] = styleEntry();
         toolStyle = s;
+        persistToolStyle();
+    }
+
+    function setToolFill(f) {
+        activeFill = f;
+        var s = Object.assign({}, toolStyle);
+        s[activeTool] = styleEntry();
+        toolStyle = s;
+        persistToolStyle();
+    }
+
+    /**
+     * Nudges the active tool's width by one scroll notch, clamped to 1..20, and
+     * pushes the new width onto an open draft so the stroke or text resizes live.
+     */
+    function adjustWidth(dir) {
+        var w = Math.max(1, Math.min(20, activeWidth + dir));
+        if (w === activeWidth) return;
+        setToolWidth(w);
+        if (draft) {
+            if (draft.type === "text") { draft = Object.assign({}, draft, { size: textSize() }); bumpAnn(); }
+            else if (draft.width !== undefined) { draft.width = w; bumpAnn(); }
+        }
+    }
+
+    /** Coalesces rapid style changes (a scroll burst) into one settings write. */
+    Timer {
+        id: persistTimer
+        interval: 400
+        onTriggered: { Config.toolStyle = root.toolStyle; Config.save(); }
+    }
+    function persistToolStyle() { persistTimer.restart(); }
+
+    Connections {
+        target: Config
+        function onLoaded() {
+            if (Config.toolStyle && typeof Config.toolStyle === "object")
+                root.toolStyle = Config.toolStyle;
+            root.selectTool(root.activeTool);
+        }
     }
 
     property var selectedIndex: null
@@ -279,7 +329,7 @@ ShellRoot {
         else if (activeTool === "zoom")
             draft = { type: "zoom", points: [p, p], zoom: Config.zoomFactor };
         else
-            draft = { type: activeTool, points: [p, p], color: String(activeColor), width: activeWidth, filled: false };
+            draft = { type: activeTool, points: [p, p], color: String(activeColor), width: activeWidth, filled: activeFill };
         bumpAnn();
     }
     function updateDraw(gx, gy) {
@@ -380,7 +430,9 @@ ShellRoot {
         return "shot-" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate())
             + "-" + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + ".png";
     }
-    readonly property string defaultPath: shotsDir + "/" + timestampName()
+    /** Save target: the folder picked in settings, or shotsDir when none is set. */
+    readonly property string effectiveSaveDir: Config.saveDir !== "" ? Config.saveDir : shotsDir
+    readonly property string defaultPath: effectiveSaveDir + "/" + timestampName()
 
     function anchorOverlay() {
         if (!globalSel) return null;
@@ -504,9 +556,19 @@ ShellRoot {
         grabTo(auto, function (ok) {
             if (!ok) { root.finish("Capture failed", "", true, ""); return; }
             root.savedAuto = auto;
+            if (Config.skipSaveDialog) { root.afterSave(auto); return; }
             root.dialogMode = true;
             saveDialog.open();
         });
+    }
+
+    /**
+     * Finishes a save: the file is already on disk at path, so this only adds the
+     * clipboard copy when the copy-on-save setting is on, then fires the toast.
+     */
+    function afterSave(path) {
+        if (Config.copyOnSave) saveCopyProc.run(path);
+        else root.finish("Screenshot saved", root.pretty(path), false, path);
     }
 
     function doUpload() {
@@ -529,7 +591,7 @@ ShellRoot {
             console.log("rishot: kdialog exit " + code + " path=" + JSON.stringify(chosen));
             if (code === 0 && chosen.length > 0) {
                 if (chosen !== root.savedAuto) copyFileProc.run(root.savedAuto, chosen);
-                else root.finish("Screenshot saved", root.pretty(root.savedAuto), false, root.savedAuto);
+                else root.afterSave(root.savedAuto);
             } else {
                 root.dialogMode = false;
             }
@@ -540,7 +602,40 @@ ShellRoot {
         id: copyFileProc
         property string dst: ""
         function run(src, d) { dst = d; command = ["cp", "--", src, d]; running = true; }
-        onExited: () => root.finish("Screenshot saved", root.pretty(dst), false, dst)
+        onExited: () => root.afterSave(dst)
+    }
+
+    /** Puts an already-saved file on the clipboard for the copy-on-save option. */
+    Process {
+        id: saveCopyProc
+        property string p: ""
+        function run(path) {
+            p = path;
+            command = ["sh", "-c", "exec 9>&-; wl-copy --type image/png < \"$1\"", "_", path];
+            running = true;
+        }
+        onExited: () => root.finish("Screenshot saved", root.pretty(p), false, p)
+    }
+
+    /**
+     * Folder picker for the save directory. The overlay holds an exclusive
+     * keyboard grab, so dialogMode drops it while kdialog runs and the overlay
+     * returns with its frozen capture intact once a folder is chosen or the
+     * picker is cancelled.
+     */
+    Process {
+        id: saveDirPick
+        stdout: StdioCollector { id: saveDirOut }
+        function open() {
+            root.dialogMode = true;
+            command = ["kdialog", "--getexistingdirectory", root.effectiveSaveDir];
+            running = true;
+        }
+        onExited: (code) => {
+            root.dialogMode = false;
+            var dir = saveDirOut.text.trim();
+            if (code === 0 && dir.length > 0) { Config.saveDir = dir; Config.save(); }
+        }
     }
 
     Process {
@@ -746,6 +841,9 @@ ShellRoot {
                         root.settingsOpen = false;
                         root.openPopover = root.openPopover === "width" ? "" : "width";
                         e.accepted = true;
+                    } else if (root.phase === "editing" && e.text === "f" && root.toolHasFill(root.activeTool)) {
+                        root.setToolFill(!root.activeFill);
+                        e.accepted = true;
                     }
                 }
 
@@ -772,6 +870,7 @@ ShellRoot {
                     onMovedTo: (gx, gy) => root.pointerMoved(gx, gy)
                     onHovered: (gx, gy) => root.pointerHover(gx, gy)
                     onReleased: root.pointerReleased()
+                    onWheelStep: (dir) => root.adjustWidth(dir)
                     onResizeStarted: (role, gx, gy) => root.beginResize(role, gx, gy)
                     onResizeMoved: (gx, gy) => root.updateResize(gx, gy)
                     onResizeEnded: root.endResize()
@@ -793,6 +892,7 @@ ShellRoot {
                     activeTool: root.activeTool
                     activeColor: root.activeColor
                     activeWidth: root.activeWidth
+                    activeFill: root.activeFill
                     canUndo: { root.commitRevision; return root.model ? root.model.canUndo() : false; }
                     canRedo: { root.commitRevision; return root.model ? root.model.canRedo() : false; }
                     settingsOpen: root.settingsOpen
@@ -812,6 +912,7 @@ ShellRoot {
                     onToolPicked: (t) => root.selectTool(t)
                     onColorButtonClicked: { root.settingsOpen = false; root.openPopover = root.openPopover === "color" ? "" : "color"; }
                     onWidthButtonClicked: { root.settingsOpen = false; root.openPopover = root.openPopover === "width" ? "" : "width"; }
+                    onFillToggled: root.setToolFill(!root.activeFill)
                     onUndoRequested: root.undo()
                     onRedoRequested: root.redo()
                     onCopyRequested: root.doCopy()
@@ -847,6 +948,7 @@ ShellRoot {
                     }
                     onCloseRequested: root.settingsOpen = false
                     onRebound: Qt.quit()
+                    onPickSaveDir: saveDirPick.open()
                 }
 
                 ColorPopover {

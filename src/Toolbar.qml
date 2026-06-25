@@ -10,6 +10,7 @@ Item {
     property string activeTool: "rect"
     property color activeColor: Theme.vermilion
     property int activeWidth: 4
+    property bool activeFill: false
     property bool canUndo: false
     property bool canRedo: false
     property bool settingsOpen: false
@@ -21,6 +22,7 @@ Item {
     signal toolPicked(string tool)
     signal colorButtonClicked()
     signal widthButtonClicked()
+    signal fillToggled()
     signal undoRequested()
     signal redoRequested()
     signal copyRequested()
@@ -235,6 +237,39 @@ Item {
                     onHoveredChanged: hovered
                         ? tb.showTip("Width", "w", widthBtn.x + row.x + widthBtn.width / 2)
                         : tb.hideTip("Width")
+                }
+            }
+
+            Rectangle {
+                id: fillBtn
+                visible: tb.activeTool === "rect" || tb.activeTool === "ellipse"
+                Layout.preferredWidth: visible ? 32 : 0
+                Layout.preferredHeight: 32
+                radius: 7
+                color: fillMa.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 16
+                    height: 16
+                    radius: 3
+                    color: tb.activeFill ? tb.activeColor : "transparent"
+                    border.color: tb.activeColor
+                    border.width: 2
+                    scale: fillMa.pressed ? 0.9 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 80 } }
+                }
+
+                MouseArea {
+                    id: fillMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: tb.fillToggled()
+                }
+                HoverHandler {
+                    onHoveredChanged: hovered
+                        ? tb.showTip("Fill", "f", fillBtn.x + row.x + fillBtn.width / 2)
+                        : tb.hideTip("Fill")
                 }
             }
 
