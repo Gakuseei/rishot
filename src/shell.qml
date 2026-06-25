@@ -154,19 +154,26 @@ ShellRoot {
         || "https://litterbox.catbox.moe/resources/internals/api.php"
     readonly property string keybindFile: Quickshell.env("RISHOT_KEYBIND_FILE") || ""
 
+    readonly property bool onKde: (Quickshell.env("XDG_CURRENT_DESKTOP") || "").toLowerCase().indexOf("kde") >= 0
+
     /**
-     * KWin implements none of the screencopy protocols ScreencopyView needs, so
-     * on KDE the capture path switches to spectacle (see spectacleProc). RISHOT_CAPTURE
-     * forces a backend; otherwise KDE picks spectacle and everything else uses
-     * ScreencopyView. captureScale is spectacle's stitched-PNG scale, ceil of the
-     * largest output ratio, used to crop each output out of the full-desktop shot.
+     * Capture backend. "screencopy" uses ScreencopyView, "image" shows a PNG that
+     * an external tool grabbed. KWin speaks none of the screencopy protocols
+     * ScreencopyView needs, so KDE starts on "image" (spectacle, see grabProc).
+     * Everywhere else starts on "screencopy" and only falls back to "image" (grim)
+     * when no frame ever arrives, which covers compositors whose screencopy hands
+     * back an empty surface. RISHOT_CAPTURE forces a backend; the value is mutable
+     * so the timeout fallback can switch it at runtime. captureScale is the grabbed
+     * PNG's scale, ceil of the largest output ratio, used to crop each output out
+     * of the full-desktop shot.
      */
-    readonly property string captureBackend: {
+    property string captureBackend: {
         var ov = Quickshell.env("RISHOT_CAPTURE");
-        if (ov === "spectacle" || ov === "screencopy") return ov;
-        var de = (Quickshell.env("XDG_CURRENT_DESKTOP") || "").toLowerCase();
-        return de.indexOf("kde") >= 0 ? "spectacle" : "screencopy";
+        if (ov === "image" || ov === "spectacle") return "image";
+        if (ov === "screencopy") return "screencopy";
+        return onKde ? "image" : "screencopy";
     }
+    property bool fellBack: false
     readonly property real captureScale: {
         var s = Quickshell.screens, m = 1;
         for (var i = 0; i < s.length; i++) m = Math.max(m, s[i].devicePixelRatio || 1);
@@ -698,31 +705,41 @@ ShellRoot {
     }
 
     /**
-     * KDE capture. KWin lets no unprivileged client speak a screencopy protocol,
-     * but spectacle is allowlisted for its screenshot interface, so we grab the
-     * whole desktop through it once and each overlay shows its slice. Background
-     * plus no-notify keep it silent and the default leaves the cursor out. The
-     * overlays stay unmapped until frozenSource is set so the shot never catches
-     * rishot's own surface. exit 127 means spectacle is not installed.
+     * Whole-desktop grab for the "image" backend. spectacle on KDE since it is the
+     * only client KWin authorises for its screenshot interface; grim elsewhere when
+     * ScreencopyView came back empty. Background and no-notify keep spectacle quiet
+     * and both tools leave the cursor out. On KDE the overlays stay unmapped until
+     * frozenSource is set so the shot never catches rishot's own surface; the grim
+     * fallback runs while the overlay is still transparent, so it does not either.
+     * exit 127 means the grab tool is not installed.
      */
     Process {
-        id: spectacleProc
-        command: ["sh", "-c",
-            "command -v spectacle >/dev/null 2>&1 || exit 127; exec spectacle -bnf -o \"$1\"",
-            "_", root.frozenPng]
+        id: grabProc
+        function start() {
+            var inner = root.onKde
+                ? "command -v spectacle >/dev/null 2>&1 || exit 127; exec spectacle -bnf -o \"$1\""
+                : "command -v grim >/dev/null 2>&1 || exit 127; exec grim \"$1\"";
+            command = ["sh", "-c", inner, "_", root.frozenPng];
+            running = true;
+        }
         onExited: (code) => {
-            if (code === 0) { root.frozenSource = "file://" + root.frozenPng; return; }
+            if (code === 0) {
+                root.captureBackend = "image";
+                root.frozenSource = "file://" + root.frozenPng;
+                return;
+            }
             if (code === 127)
-                root.finish("rishot needs spectacle on KDE",
-                    "KWin has no screencopy protocol; install spectacle to capture", true, "");
+                root.finish(root.onKde ? "rishot needs spectacle on KDE" : "rishot could not capture the screen",
+                    root.onKde ? "KWin has no screencopy protocol; install spectacle to capture"
+                               : "no screencopy frame and grim is not installed", true, "");
             else
-                root.finish("Capture failed", "spectacle exited " + code, true, "");
+                root.finish("Capture failed", "screen grab exited " + code, true, "");
         }
     }
 
     Component.onCompleted: {
         windowProvider.refresh();
-        if (root.captureBackend === "spectacle") spectacleProc.running = true;
+        if (root.captureBackend === "image") grabProc.start();
     }
 
     Process {
@@ -761,7 +778,7 @@ ShellRoot {
             required property var modelData
             screen: modelData
             visible: !root.dialogMode
-                && (root.captureBackend !== "spectacle" || root.frozenSource !== "")
+                && (root.captureBackend !== "image" || root.frozenSource !== "")
 
             anchors { top: true; left: true; right: true; bottom: true }
             color: "transparent"
@@ -875,6 +892,12 @@ ShellRoot {
                     onResizeMoved: (gx, gy) => root.updateResize(gx, gy)
                     onResizeEnded: root.endResize()
                     onCaptureTimedOut: {
+                        if (root.captureBackend === "screencopy" && !root.fellBack) {
+                            root.fellBack = true;
+                            console.warn("rishot: no screencopy frame, falling back to an external grab");
+                            grabProc.start();
+                            return;
+                        }
                         root.captureFails += 1;
                         if (root.captureFails >= Quickshell.screens.length) {
                             console.warn("rishot: no screen produced a frame, quitting");

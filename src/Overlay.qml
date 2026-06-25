@@ -16,8 +16,8 @@ Item {
 
     /** Whichever frozen source is live, and its readiness, so the effects and
      *  capture timer treat both backends the same. */
-    readonly property Item frozenItem: captureBackend === "spectacle" ? frozenPng : frozenWlr
-    readonly property bool frozenReady: captureBackend === "spectacle"
+    readonly property Item frozenItem: captureBackend === "image" ? frozenPng : frozenWlr
+    readonly property bool frozenReady: captureBackend === "image"
         ? frozenPng.status === Image.Ready
         : frozenWlr.hasContent
 
@@ -96,8 +96,8 @@ Item {
         ScreencopyView {
             id: frozenWlr
             anchors.fill: parent
-            visible: overlay.captureBackend !== "spectacle"
-            captureSource: overlay.captureBackend !== "spectacle" ? overlay.screenData : null
+            visible: overlay.captureBackend !== "image"
+            captureSource: overlay.captureBackend !== "image" ? overlay.screenData : null
             live: false
             paintCursor: false
         }
@@ -105,8 +105,8 @@ Item {
         Image {
             id: frozenPng
             anchors.fill: parent
-            visible: overlay.captureBackend === "spectacle"
-            source: overlay.captureBackend === "spectacle" ? overlay.frozenSource : ""
+            visible: overlay.captureBackend === "image"
+            source: overlay.captureBackend === "image" ? overlay.frozenSource : ""
             sourceClipRect: Qt.rect(overlay.sx * overlay.captureScale,
                                     overlay.sy * overlay.captureScale,
                                     overlay.width * overlay.captureScale,
@@ -117,7 +117,7 @@ Item {
             asynchronous: true
             onStatusChanged: {
                 if (status === Image.Error) overlay.captureTimedOut();
-                else if (status === Image.Ready && overlay.captureBackend === "spectacle") overlay.ready = true;
+                else if (status === Image.Ready && overlay.captureBackend === "image") overlay.ready = true;
             }
         }
 
@@ -336,7 +336,7 @@ Item {
         id: capTimer
         interval: 50
         repeat: true
-        running: overlay.captureBackend !== "spectacle"
+        running: overlay.captureBackend !== "image"
         property int tries: 0
         onTriggered: {
             tries += 1;
