@@ -152,6 +152,16 @@ eq(parseNiri(niriWindows, niriWorkspaces, niriOutputsDisabled), [
     { x: 2565, y: 5, w: 1280, h: 720, z: 0 }
 ], "niri disabled output (logical:null) drops its window, keeps the other");
 
+const niriWindowsOffset = JSON.stringify([
+    {
+        id: 1, workspace_id: 1, is_focused: true,
+        layout: { tile_pos_in_workspace_view: [100, 50], window_offset_in_tile: [8, 12], window_size: [800, 600] }
+    }
+]);
+eq(parseNiri(niriWindowsOffset, niriWorkspaces, niriOutputsObject), [
+    { x: 108, y: 62, w: 800, h: 600, z: 0 }
+], "niri adds window_offset_in_tile to the tile position (floating windows)");
+
 eq(parseNiri(niriWindows, niriWorkspaces, "{bad"), [], "niri bad outputs json -> []");
 eq(parseNiri(niriWindows, "{bad", niriOutputsObject), [], "niri bad workspaces json -> []");
 eq(parseNiri("{bad", niriWorkspaces, niriOutputsObject), [], "niri bad windows json -> []");

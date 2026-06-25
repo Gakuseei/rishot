@@ -158,12 +158,18 @@ function niriOutputMap(outputs) {
  *
  * A niri window carries no output; its global position is reconstructed by
  * joining `window.workspace_id` to the owning workspace's `output`, then to that
- * output's `logical` origin. The tiled position `layout.tile_pos_in_workspace_view`
- * is expressed relative to the output's logical view, so the logical origin is
- * added to produce global coordinates. Windows without a tile position (floating
- * or not currently laid out), on an unknown workspace, or on an unknown/disabled
- * output are skipped. The focused window receives the smallest z; all others are
- * ordered by a counter.
+ * output's `logical` origin. The window sits at the tile position plus its own
+ * offset inside the tile, so the global origin is the output origin plus
+ * `tile_pos_in_workspace_view` plus `window_offset_in_tile`.
+ *
+ * niri only fills `tile_pos_in_workspace_view` for floating windows. For tiled
+ * windows it stays null on purpose, since filling it per tile would cascade IPC
+ * updates across the whole row (niri#2381), and niri exposes no scroll offset to
+ * rebuild it from. So window-snap covers floating windows on niri and skips tiled
+ * ones until niri ships the scrolling view position (niri PR #4147). Windows on an
+ * unknown workspace or an unknown or disabled output are skipped too. The focused
+ * window receives the smallest z; all others are ordered by a counter. Region and
+ * monitor selection never use this list, so they are unaffected.
  *
  * @param {string} windowsJson Raw stdout of `niri msg --json windows`.
  * @param {string} workspacesJson Raw stdout of `niri msg --json workspaces`.
@@ -183,6 +189,7 @@ function parseNiri(windowsJson, workspacesJson, outputsJson) {
             if (!layout) continue;
             var tilePos = layout.tile_pos_in_workspace_view;
             if (!tilePos) continue;
+            var off = layout.window_offset_in_tile || [0, 0];
             var size = layout.window_size;
             if (!size || size[0] <= 0 || size[1] <= 0) continue;
             var outName = workspaceMap[win.workspace_id];
@@ -190,8 +197,8 @@ function parseNiri(windowsJson, workspacesJson, outputsJson) {
             var out = outputMap[outName];
             if (!out) continue;
             rects.push({
-                x: out.x + tilePos[0],
-                y: out.y + tilePos[1],
+                x: out.x + tilePos[0] + off[0],
+                y: out.y + tilePos[1] + off[1],
                 w: size[0],
                 h: size[1],
                 z: win.is_focused ? 0 : counter++
