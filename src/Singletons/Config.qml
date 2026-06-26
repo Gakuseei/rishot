@@ -65,6 +65,7 @@ Singleton {
         id: store
         path: config.path
         atomicWrites: true
+        printErrors: false
         onLoaded: {
             try {
                 var c = JSON.parse(text());
@@ -79,6 +80,16 @@ Singleton {
             } catch (e) {
                 console.log("rishot: config parse failed, using defaults: " + e);
             }
+            config.loaded();
+        }
+
+        /**
+         * First run has no config.json yet, so seed it with the current defaults
+         * instead of letting the read surface as an error. Any other failure keeps
+         * the in-memory defaults and still announces loaded() so the shell starts.
+         */
+        onLoadFailed: (error) => {
+            if (error === FileViewError.FileNotFound) config.save();
             config.loaded();
         }
         onSaveFailed: (err) => console.log("rishot: config write failed: " + err)
