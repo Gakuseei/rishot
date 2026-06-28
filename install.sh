@@ -20,12 +20,19 @@ warn() { printf 'rishot: %s\n' "$*" >&2; }
 die() { printf 'rishot: %s\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
-# True on a KDE/KWin session. KWin implements none of the screencopy protocols
-# the wlroots capture path needs, so on KDE rishot grabs the screen through
-# spectacle instead, which makes spectacle required there rather than optional.
+# True on an rpm-ostree / atomic system (Bazzite, Silverblue, Kinoite). The marker
+# means the running system booted an OSTree deployment, so dnf cannot install onto
+# it; deps go through rpm-ostree (with a reboot) or a container instead.
+is_atomic() { [ -f /run/ostree-booted ]; }
+
+# True on a KDE/KWin session. KWin implements none of the screencopy protocols the
+# wlroots capture path needs, so on KDE rishot grabs the screen through spectacle
+# instead, which makes spectacle required there rather than optional. Matches the
+# runtime check: any kde/plasma marker, or the KDE_* variables startplasma exports.
 de_is_kde() {
 	printf '%s' "${XDG_CURRENT_DESKTOP:-}:${XDG_SESSION_DESKTOP:-}:${DESKTOP_SESSION:-}" \
-		| grep -iq kde
+		| grep -iqE 'kde|plasma' \
+		|| [ -n "${KDE_FULL_SESSION:-}${KDE_SESSION_VERSION:-}" ]
 }
 
 # Pick a package manager. AUR helpers are preferred on Arch so quickshell can be
@@ -49,6 +56,31 @@ print_manual_deps() {
 	say "  optional: imagemagick, cliphist, curl, kdialog, libnotify"
 	say "  on KDE/KWin: spectacle (rishot captures through it; KWin has no screencopy protocol)"
 	say "quickshell lives in: Arch extra, Debian/Ubuntu, Fedora COPR errornointernet/quickshell, NixOS, Void."
+}
+
+# Atomic systems take no normal package install, and layering quickshell with
+# rpm-ostree needs a reboot and can clash on a Qt bump, so this never installs
+# behind the user's back. It runs the userspace file install (which works on any
+# system) and reports what is present, with exact commands for whatever is missing.
+print_atomic_deps() {
+	say "Checking what is already here:"
+	for c in qs wl-copy; do
+		if have "$c"; then say "  $c: present"; else say "  $c: MISSING (required)"; fi
+	done
+	if de_is_kde; then
+		if have spectacle; then say "  spectacle: present"; else say "  spectacle: MISSING (KDE capture)"; fi
+	fi
+	for c in magick cliphist curl kdialog notify-send; do
+		if have "$c"; then say "  $c: present"; else say "  $c: missing (optional)"; fi
+	done
+	if ! have qs || { de_is_kde && ! have spectacle; }; then
+		say ""
+		say "Missing pieces need a system install. On an atomic system pick one:"
+		say "  distrobox: run rishot from an Arch or Fedora box that has the packages"
+		say "  layered:   rpm-ostree install quickshell spectacle   (needs a reboot)"
+		say "             quickshell COPR (if needed): https://copr.fedorainfracloud.org/coprs/errornointernet/quickshell/"
+		say "After a layered install, reboot, then re-run this script."
+	fi
 }
 
 # Pull spectacle on KDE, where it is the capture backend (see de_is_kde). Per-PM
@@ -280,19 +312,24 @@ main() {
 	say "rishot installer"
 	say ""
 
-	pm=$(detect_pm)
-	say "Package manager: $pm"
-	if ! install_deps "$pm"; then
-		warn "dependencies need manual attention (see above); continuing with the file install"
+	if is_atomic; then
+		say "Atomic system detected (rpm-ostree); dnf cannot install here, skipping it."
+		print_atomic_deps
+	else
+		pm=$(detect_pm)
+		say "Package manager: $pm"
+		if ! install_deps "$pm"; then
+			warn "dependencies need manual attention (see above); continuing with the file install"
+		fi
+		if de_is_kde; then install_kde_capture "$pm"; fi
 	fi
-	if de_is_kde; then install_kde_capture "$pm"; fi
 
 	install_files
 	check_path
 
 	if ! have qs; then
 		warn "'qs' (quickshell) is not on PATH yet; rishot needs it to run"
-		print_manual_deps
+		is_atomic || print_manual_deps
 	fi
 
 	print_keybind
