@@ -38,11 +38,15 @@ esac
 dir="${RISHOT_CONFIG_DIR:-}"
 if [ -z "$dir" ]; then
 	self=$(dirname "$(readlink -f "$0")")
+	# The src/ beside this launcher comes first so a checkout or a freshly pulled
+	# copy always runs its own code instead of a stale shared install; the install
+	# paths are only a fallback. A normal install resolves $self/../src to the same
+	# place, so this changes nothing there.
 	for c in \
+		"$self/../src" \
 		"${HOME:-}/.local/share/rishot/src" \
 		/usr/share/rishot/src \
-		/usr/lib/rishot/src \
-		"$self/../src"; do
+		/usr/lib/rishot/src; do
 		if [ -f "$c/shell.qml" ]; then dir="$c"; break; fi
 	done
 fi
