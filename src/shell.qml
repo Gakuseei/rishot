@@ -800,6 +800,37 @@ ShellRoot {
         else kwinProbe.running = true;
     }
 
+    /**
+     * Startup watchdog against the invisible-hang failure. When the compositor
+     * or driver refuses a graphics context for the layer surface (seen as
+     * EGL_BAD_ALLOC under GPU memory pressure), Qt logs the error but QML gets
+     * no signal: the process would sit in the event loop forever, holding the
+     * single-instance lock so every later keypress is a no-op. framePainted
+     * flips on the first real render tick of any overlay (FrameAnimation runs
+     * on the window render loop, so a window that never got a context never
+     * ticks). No frame after 15s means the overlay will never appear: notify,
+     * then quit, with a hard fallback timer in case notify-send itself hangs.
+     */
+    property bool framePainted: false
+
+    Timer {
+        interval: 15000
+        running: true
+        onTriggered: {
+            if (root.framePainted) return;
+            console.error("rishot: no frame rendered 15s after launch, graphics init failed, giving up");
+            root.finish("rishot could not draw its overlay",
+                "graphics init failed, likely GPU memory pressure; press the key again", true, "");
+            quitFallback.start();
+        }
+    }
+
+    Timer {
+        id: quitFallback
+        interval: 3000
+        onTriggered: Qt.quit()
+    }
+
     Process {
         id: stitchProc
         property var cb: null
@@ -1055,6 +1086,11 @@ ShellRoot {
             }
 
             Component.onCompleted: root.overlays.push(win)
+
+            FrameAnimation {
+                running: win.visible && !root.framePainted
+                onTriggered: root.framePainted = true
+            }
 
             function grabExport(path, cb) { ov.grabExport(path, cb); }
         }
