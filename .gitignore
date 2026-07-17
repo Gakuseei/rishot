@@ -3,3 +3,4 @@ docs/
 .playwright/
 *.log
 /tmp/
+.playwright-mcp/
