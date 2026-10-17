@@ -88,16 +88,15 @@ fi
 
 if [ -z "$output" ]; then exec env RISHOT_MODE="$mode" qs -p "$dir"; fi
 
-out="$rundir/rishot-out.png"
-rm -f "$out"
+tmp=$(mktemp -d "$rundir/rishot.XXXXXX")
+trap 'rm -rf "$tmp"' EXIT
+out="$tmp/out.png"
 env RISHOT_MODE="$mode" RISHOT_OUTFILE="$out" qs -p "$dir" >&2 || true
-[ -s "$out" ] || { rm -f "$out"; echo "rishot: cancelled" >&2; exit 1; }
+[ -s "$out" ] || { echo "rishot: cancelled" >&2; exit 1; }
 if [ "$output" = raw ]; then
 	cat "$out"
-	rm -f "$out"
 	exit 0
 fi
-wl-copy --type image/png <"$out" >/dev/null 9>&- || { rm -f "$out"; echo "rishot: wl-copy failed" >&2; exit 1; }
-rm -f "$out"
+wl-copy --type image/png <"$out" >/dev/null 9>&- || { echo "rishot: wl-copy failed" >&2; exit 1; }
 echo "rishot: copied to clipboard" >&2
 command -v notify-send >/dev/null 2>&1 && notify-send -a rishot "Copied to clipboard" 9>&- || true
