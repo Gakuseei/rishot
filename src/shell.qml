@@ -577,20 +577,26 @@ ShellRoot {
     function doCopy() {
         var keep = Config.copyToDisk;
         var target = keep ? defaultPath : (root.tmpDir + "/rishot-copy.png");
-        grabTo(target, function (ok) {
-            if (ok) copyProc.run(target, keep);
-            else root.finish("Capture failed", "", true, "");
-        });
+        var grab = function () {
+            grabTo(target, function (ok) {
+                if (ok) copyProc.run(target, keep);
+                else root.finish("Capture failed", "", true, "");
+            });
+        };
+        if (keep) mkdirProc.run(root.effectiveSaveDir, grab);
+        else grab();
     }
 
     function doSave() {
         var auto = root.defaultPath;
-        grabTo(auto, function (ok) {
-            if (!ok) { root.finish("Capture failed", "", true, ""); return; }
-            root.savedAuto = auto;
-            if (Config.skipSaveDialog) { root.afterSave(auto); return; }
-            root.dialogMode = true;
-            saveDialog.open();
+        mkdirProc.run(root.effectiveSaveDir, function () {
+            grabTo(auto, function (ok) {
+                if (!ok) { root.finish("Capture failed", "", true, ""); return; }
+                root.savedAuto = auto;
+                if (Config.skipSaveDialog) { root.afterSave(auto); return; }
+                root.dialogMode = true;
+                saveDialog.open();
+            });
         });
     }
 
@@ -847,10 +853,12 @@ ShellRoot {
 
     Process { id: seamCleanup }
 
+    /** Creates the save dir only when a shot is written there, never at startup. */
     Process {
         id: mkdirProc
-        running: true
-        command: ["mkdir", "-p", root.shotsDir]
+        property var cb: null
+        function run(dir, then) { cb = then; command = ["mkdir", "-p", dir]; running = true; }
+        onExited: () => { var f = cb; cb = null; if (f) f(); }
     }
 
     function toolbarFor(win) {

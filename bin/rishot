@@ -71,4 +71,10 @@ mkdir -p "$rundir" 2>/dev/null || rundir="/tmp"
 lock="$rundir/rishot.lock"
 exec 9>"$lock"
 flock -n 9 || { echo "rishot: already running" >&2; exit 0; }
+# XDG_PICTURES_DIR is rarely exported; ask user-dirs for the localised Pictures folder.
+if [ -z "${XDG_PICTURES_DIR:-}" ] && command -v xdg-user-dir >/dev/null 2>&1; then
+	pics=$(xdg-user-dir PICTURES 2>/dev/null || true)
+	[ -n "$pics" ] && [ "$pics" != "${HOME:-}" ] && export XDG_PICTURES_DIR="$pics"
+fi
+
 exec env RISHOT_MODE="$mode" qs -p "$dir"
