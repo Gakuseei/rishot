@@ -34,6 +34,7 @@ Item {
     property var selectedIndex: null
     property var moveOffset: null
     property var hoverWindow: null
+    property bool spaceHeld: false
 
     signal pressedAt(real gx, real gy)
     signal movedTo(real gx, real gy)
@@ -527,7 +528,9 @@ Item {
         enabled: overlay.ready
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton
-        cursorShape: Qt.CrossCursor
+        cursorShape: overlay.spaceHeld && overlay.phase === "editing"
+            ? (overlay.capturing ? Qt.ClosedHandCursor : Qt.OpenHandCursor)
+            : Qt.CrossCursor
         onPressed: (m) => overlay.pressedAt(m.x + overlay.sx, m.y + overlay.sy)
         onPositionChanged: (m) => {
             if (overlay.capturing) overlay.movedTo(m.x + overlay.sx, m.y + overlay.sy);

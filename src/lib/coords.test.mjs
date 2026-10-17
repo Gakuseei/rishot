@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { intersectRect, rectFromPoints, snapEdge } = require("./coords.js");
+const { intersectRect, rectFromPoints, snapEdge, screensBounds } = require("./coords.js");
 
 let failed = 0;
 function eq(actual, expected, msg) {
@@ -32,6 +32,7 @@ eq(snapEdge({ x: 5119, y: 1439 }, screens), { x: 5120, y: 1440 }, "snapEdge reac
 eq(snapEdge({ x: 2559, y: 700 }, screens), { x: 2560, y: 700 }, "snapEdge reaches HDMI right edge");
 eq(snapEdge({ x: 2560, y: 700 }, screens), { x: 2560, y: 700 }, "snapEdge leaves DP left edge alone");
 eq(snapEdge({ x: 1200, y: 600 }, screens), { x: 1200, y: 600 }, "snapEdge leaves interior points alone");
+eq(screensBounds(screens), { x: 0, y: 0, w: 5120, h: 1440 }, "screensBounds spans both monitors");
 
 if (failed > 0) {
     console.log("\n" + failed + " test(s) FAILED");

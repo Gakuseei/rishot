@@ -43,6 +43,17 @@ function snapEdge(p, screens) {
     return p;
 }
 
+/** Bounding box of all screens, as { x, y, w, h }. */
+function screensBounds(screens) {
+    var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (var i = 0; i < screens.length; i++) {
+        var s = screens[i];
+        x0 = Math.min(x0, s.x); y0 = Math.min(y0, s.y);
+        x1 = Math.max(x1, s.x + s.width); y1 = Math.max(y1, s.y + s.height);
+    }
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { intersectRect, rectFromPoints, snapEdge };
+    module.exports = { intersectRect, rectFromPoints, snapEdge, screensBounds };
 }

@@ -53,7 +53,7 @@ Quickshell is in the official repos on Arch (extra), Fedora 44+, Void, and Debia
 ## Features
 
 - Region, window, and monitor capture
-- Resize the selection after the fact with eight handles
+- Resize the selection after the fact with eight handles, or hold `Space` and drag to move it
 - Twelve tools: rectangle, ellipse, line, arrow, pen, highlighter, text, numbered steps, blur, pixelate, zoom
 - Rectangle and ellipse draw filled or outline, toggled with `f`
 - Scroll while drawing to resize the stroke or text live

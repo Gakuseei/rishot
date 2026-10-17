@@ -26,6 +26,8 @@ ShellRoot {
     property int commitRevision: 0
     property bool settingsOpen: false
     property bool textEditing: false
+    property bool spaceHeld: false
+    property var selDrag: null
 
     property real toolbarDX: 0
     property real toolbarDY: 0
@@ -270,6 +272,22 @@ ShellRoot {
     /** Ends the active region-resize gesture. */
     function endResize() { resizing = null; }
 
+    /** Space-drag moves the selection frame; annotations stay on the frozen image beneath it. */
+    function beginMoveSel(gx, gy) {
+        selDrag = { gx: gx, gy: gy, x: globalSel.x, y: globalSel.y };
+        capturing = true;
+    }
+    function updateMoveSel(gx, gy) {
+        var b = Coords.screensBounds(Quickshell.screens);
+        var x = Math.max(b.x, Math.min(selDrag.x + gx - selDrag.gx, b.x + b.w - globalSel.w));
+        var y = Math.max(b.y, Math.min(selDrag.y + gy - selDrag.gy, b.y + b.h - globalSel.h));
+        globalSel = { x: x, y: y, w: globalSel.w, h: globalSel.h };
+    }
+    function endMoveSel() {
+        selDrag = null;
+        capturing = false;
+    }
+
     function clampToSel(gx, gy) {
         var x = Math.max(globalSel.x, Math.min(gx, globalSel.x + globalSel.w));
         var y = Math.max(globalSel.y, Math.min(gy, globalSel.y + globalSel.h));
@@ -447,6 +465,7 @@ ShellRoot {
     }
     function pointerPressed(gx, gy) {
         if (resizing !== null) return;
+        if (phase === "editing" && spaceHeld) { beginMoveSel(gx, gy); return; }
         if (phase === "selecting") {
             if (mode === "monitor") selectMonitor(gx, gy);
             else beginSelection(gx, gy);
@@ -456,12 +475,14 @@ ShellRoot {
     }
     function pointerMoved(gx, gy) {
         if (resizing !== null) return;
-        if (phase === "selecting") updateSelection(gx, gy);
+        if (selDrag) updateMoveSel(gx, gy);
+        else if (phase === "selecting") updateSelection(gx, gy);
         else if (activeTool === "select") updateSelect(gx, gy);
         else updateDraw(gx, gy);
     }
     function pointerReleased() {
-        if (phase === "selecting") endSelection();
+        if (selDrag) endMoveSel();
+        else if (phase === "selecting") endSelection();
         else if (activeTool === "select") endSelect();
         else endDraw();
     }
@@ -932,8 +953,16 @@ ShellRoot {
                     else if (root.selectedIndex !== null) root.clearSelection();
                     else Qt.quit();
                 }
+                Keys.onReleased: (e) => {
+                    if (e.key === Qt.Key_Space && !e.isAutoRepeat) root.spaceHeld = false;
+                }
                 Keys.onPressed: (e) => {
                     if (root.textEditing) return;
+                    if (e.key === Qt.Key_Space && root.phase === "editing") {
+                        root.spaceHeld = true;
+                        e.accepted = true;
+                        return;
+                    }
                     if (e.modifiers & Qt.ControlModifier) {
                         if (e.key === Qt.Key_C) { root.doCopy(); e.accepted = true; }
                         else if (e.key === Qt.Key_S) { if (root.phase === "editing") root.doSave(); e.accepted = true; }
@@ -989,6 +1018,7 @@ ShellRoot {
                     selectedIndex: root.selectedIndex
                     moveOffset: root.moveOffset
                     hoverWindow: root.hoverWindow
+                    spaceHeld: root.spaceHeld
 
                     onPressedAt: (gx, gy) => root.pointerPressed(gx, gy)
                     onMovedTo: (gx, gy) => root.pointerMoved(gx, gy)
