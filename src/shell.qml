@@ -218,9 +218,10 @@ ShellRoot {
         capturing = true;
         globalSel = { x: gx, y: gy, w: 0, h: 0 };
     }
+    function snapEdge(gx, gy) { return Coords.snapEdge({ x: gx, y: gy }, Quickshell.screens); }
     function updateSelection(gx, gy) {
         if (!pressPoint) return;
-        globalSel = Coords.rectFromPoints(pressPoint, { x: gx, y: gy });
+        globalSel = Coords.rectFromPoints(pressPoint, snapEdge(gx, gy));
     }
     function endSelection() {
         capturing = false;
@@ -247,6 +248,8 @@ ShellRoot {
      */
     function updateResize(gx, gy) {
         if (resizing === null || !globalSel) return;
+        var p = snapEdge(gx, gy);
+        gx = p.x; gy = p.y;
         var s = globalSel, m = 8;
         var x0 = s.x, y0 = s.y, x1 = s.x + s.w, y1 = s.y + s.h;
         var r = resizing;

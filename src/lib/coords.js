@@ -30,6 +30,19 @@ function rectFromPoints(a, b) {
     return { x: x, y: y, w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
 }
 
+/** The pointer stops one pixel short of a monitor's right and bottom edge; snap it onto the edge. */
+function snapEdge(p, screens) {
+    for (var i = 0; i < screens.length; i++) {
+        var s = screens[i];
+        if (p.x < s.x || p.x >= s.x + s.width || p.y < s.y || p.y >= s.y + s.height) continue;
+        return {
+            x: p.x >= s.x + s.width - 1 ? s.x + s.width : p.x,
+            y: p.y >= s.y + s.height - 1 ? s.y + s.height : p.y
+        };
+    }
+    return p;
+}
+
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { intersectRect, rectFromPoints };
+    module.exports = { intersectRect, rectFromPoints, snapEdge };
 }

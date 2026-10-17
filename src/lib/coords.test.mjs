@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { intersectRect, rectFromPoints } = require("./coords.js");
+const { intersectRect, rectFromPoints, snapEdge } = require("./coords.js");
 
 let failed = 0;
 function eq(actual, expected, msg) {
@@ -26,6 +26,12 @@ eq(intersectRect(onDp, hdmi), null, "DP-only selection has no HDMI intersection"
 eq(intersectRect(onDp, dp), { x: 140, y: 300, w: 700, h: 450 }, "DP-only selection local on DP-1");
 
 eq(rectFromPoints({ x: 100, y: 100 }, { x: 40, y: 30 }), { x: 40, y: 30, w: 60, h: 70 }, "rectFromPoints normalizes");
+
+const screens = [hdmi, dp];
+eq(snapEdge({ x: 5119, y: 1439 }, screens), { x: 5120, y: 1440 }, "snapEdge reaches bottom-right corner");
+eq(snapEdge({ x: 2559, y: 700 }, screens), { x: 2560, y: 700 }, "snapEdge reaches HDMI right edge");
+eq(snapEdge({ x: 2560, y: 700 }, screens), { x: 2560, y: 700 }, "snapEdge leaves DP left edge alone");
+eq(snapEdge({ x: 1200, y: 600 }, screens), { x: 1200, y: 600 }, "snapEdge leaves interior points alone");
 
 if (failed > 0) {
     console.log("\n" + failed + " test(s) FAILED");
