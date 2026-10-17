@@ -106,6 +106,36 @@ On KDE: `spectacle`, which rishot captures through since KWin has no screencopy 
 
 </details>
 
+<details><summary>Config file</summary>
+
+The settings panel writes `~/.config/rishot/config.json` (or `$XDG_CONFIG_HOME/rishot/config.json`). You can also edit it by hand while rishot is closed. A full file with the defaults:
+
+```json
+{
+  "mosaicFactor": 14,
+  "blurRadius": 64,
+  "zoomFactor": 2,
+  "copyToDisk": false,
+  "copyOnSave": false,
+  "skipSaveDialog": false,
+  "saveDir": "",
+  "toolStyle": {
+    "rect": { "color": "#e0563b", "width": 4, "filled": false }
+  }
+}
+```
+
+- `mosaicFactor`: pixelate block size, bigger is coarser
+- `blurRadius`: blur strength
+- `zoomFactor`: magnification of the zoom tool
+- `copyToDisk`: copy also keeps the shot in the save folder
+- `copyOnSave`: save also puts the shot on the clipboard
+- `skipSaveDialog`: save goes straight into the save folder without asking
+- `saveDir`: save folder; empty means `$RISHOT_SAVEDIR`, else `Screenshots` inside your Pictures folder
+- `toolStyle`: colour, width (1 to 20) and fill per tool. Tool ids: `rect`, `ellipse`, `line`, `arrow`, `pen`, `marker`, `step`, `text`. `filled` only affects `rect` and `ellipse`; the marker always draws yellow, so only its width counts. A tool without an entry starts at `#e0563b`, width 4, outline.
+
+</details>
+
 <details><summary>Environment variables</summary>
 
 - `RISHOT_CONFIG_DIR`: the Quickshell config dir (the one holding `shell.qml`)
