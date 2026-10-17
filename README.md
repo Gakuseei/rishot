@@ -59,6 +59,7 @@ Quickshell is in the official repos on Arch (extra), Fedora 44+, Void, and Debia
 - Scroll while drawing to resize the stroke or text live
 - Per-tool memory: each tool keeps its own colour, width and fill, saved across launches
 - Undo and redo, copy, save, upload
+- Copy the text in a shot with OCR (`Ctrl+T`, needs `tesseract`)
 - Skip the editor: `rishot --clipboard` copies the shot, `rishot --raw` writes the PNG to stdout
 - Save through a dialog or straight into a folder you pick, optionally copying to the clipboard at the same time
 - Settings panel: pixelate coarseness, blur strength, zoom factor, save options, key rebind
@@ -99,7 +100,7 @@ Both exit 1 when the capture is cancelled or fails.
 
 Required: `quickshell` (the `qs` binary), Qt 6 (declarative, svg, 5compat, wayland), `wl-clipboard`.
 
-Optional: `imagemagick` (multi-monitor stitch), `cliphist` (clip history), `curl` (upload), `kdialog` (save dialog and folder picker), `libnotify` (a desktop notification when a shot is copied, saved or uploaded).
+Optional: `imagemagick` (multi-monitor stitch), `cliphist` (clip history), `curl` (upload), `kdialog` (save dialog and folder picker), `libnotify` (a desktop notification when a shot is copied, saved or uploaded), `tesseract` plus a language pack (OCR; reads with every installed language).
 
 On KDE: `spectacle`, which rishot captures through since KWin has no screencopy protocol. The installer pulls it in when it sees a KDE session.
 

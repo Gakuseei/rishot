@@ -17,6 +17,7 @@ pkgbase = rishot-git
 	optdepends = curl: upload captures
 	optdepends = kdialog: native save-as file dialog
 	optdepends = libnotify: desktop notification when a shot is copied, saved or uploaded
+	optdepends = tesseract: copy the text in a shot (OCR)
 	provides = rishot
 	conflicts = rishot
 	source = rishot-git::git+https://github.com/Gakuseei/rishot.git

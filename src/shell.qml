@@ -28,6 +28,7 @@ ShellRoot {
     property bool textEditing: false
     property bool spaceHeld: false
     property var selDrag: null
+    property bool hasOcr: false
 
     property real toolbarDX: 0
     property real toolbarDY: 0
@@ -640,6 +641,14 @@ ShellRoot {
         else root.finish("Screenshot saved", root.pretty(path), false, path);
     }
 
+    function doOcr() {
+        var tmp = root.tmpDir + "/rishot-ocr.png";
+        grabTo(tmp, function (ok) {
+            if (ok) ocrProc.run(tmp);
+            else root.finish("Capture failed", "", true, "");
+        });
+    }
+
     function doUpload() {
         var tmp = root.tmpDir + "/rishot-upload.png";
         grabTo(tmp, function (ok) {
@@ -884,6 +893,36 @@ ShellRoot {
 
     Process { id: seamCleanup }
 
+    Process {
+        running: true
+        command: ["sh", "-c", "command -v tesseract"]
+        onExited: (code) => root.hasOcr = code === 0
+    }
+
+    /**
+     * Reads the shot with every installed tesseract language (osd is layout-only)
+     * and puts the text on the clipboard. Exit 3 means tesseract found no text.
+     */
+    Process {
+        id: ocrProc
+        stdout: StdioCollector { id: ocrOut }
+        function run(f) {
+            command = ["sh", "-c",
+                "langs=$(tesseract --list-langs 2>/dev/null | tail -n +2 | grep -vx osd | paste -s -d+ -); "
+                + "text=$(tesseract \"$1\" - ${langs:+-l \"$langs\"} 2>/dev/null | tr -d '\\f'); "
+                + "rm -f \"$1\"; "
+                + "[ -n \"$(printf %s \"$text\" | tr -d '[:space:]')\" ] || exit 3; "
+                + "exec 9>&-; printf %s \"$text\" | wl-copy >/dev/null 2>&1 && printf %s \"$text\" | head -n 1",
+                "_", f];
+            running = true;
+        }
+        onExited: (code) => {
+            if (code === 3) root.finish("No text found", "", true, "");
+            else if (code !== 0) root.finish("OCR failed", "", true, "");
+            else root.finish("Text copied", ocrOut.text.trim().slice(0, 80), false, "");
+        }
+    }
+
     /** Creates the save dir only when a shot is written there, never at startup. */
     Process {
         id: mkdirProc
@@ -967,6 +1006,7 @@ ShellRoot {
                         if (e.key === Qt.Key_C) { root.doCopy(); e.accepted = true; }
                         else if (e.key === Qt.Key_S) { if (root.phase === "editing") root.doSave(); e.accepted = true; }
                         else if (e.key === Qt.Key_U) { if (root.phase === "editing") root.doUpload(); e.accepted = true; }
+                        else if (e.key === Qt.Key_T) { if (root.phase === "editing" && root.hasOcr) root.doOcr(); e.accepted = true; }
                         else if (e.key === Qt.Key_Z) { root.undo(); e.accepted = true; }
                         else if (e.key === Qt.Key_Y) { root.redo(); e.accepted = true; }
                         return;
@@ -1056,6 +1096,7 @@ ShellRoot {
                     canUndo: { root.commitRevision; return root.model ? root.model.canUndo() : false; }
                     canRedo: { root.commitRevision; return root.model ? root.model.canRedo() : false; }
                     settingsOpen: root.settingsOpen
+                    hasOcr: root.hasOcr
 
                     x: {
                         if (!win.selLocal) return 0;
@@ -1078,6 +1119,7 @@ ShellRoot {
                     onCopyRequested: root.doCopy()
                     onSaveRequested: root.doSave()
                     onUploadRequested: root.doUpload()
+                    onOcrRequested: root.doOcr()
                     onSettingsRequested: { root.openPopover = ""; root.settingsOpen = !root.settingsOpen; }
                     onDragMoved: (dx, dy) => {
                         if (!win.selLocal) return;

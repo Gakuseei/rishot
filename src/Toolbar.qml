@@ -14,6 +14,7 @@ Item {
     property bool canUndo: false
     property bool canRedo: false
     property bool settingsOpen: false
+    property bool hasOcr: false
 
     readonly property real gearCenterX: gear.x + row.x + gear.width / 2
     readonly property real colorCenterX: colorBtn.x + row.x + colorBtn.width / 2
@@ -28,6 +29,7 @@ Item {
     signal copyRequested()
     signal saveRequested()
     signal uploadRequested()
+    signal ocrRequested()
     signal settingsRequested()
 
     /**
@@ -328,6 +330,17 @@ Item {
                     onHoveredChanged: hovered
                         ? tb.showTip("Upload · public", "Ctrl+U", uploadBtn.x + row.x + uploadBtn.width / 2)
                         : tb.hideTip("Upload · public")
+                }
+            }
+            IconButton {
+                id: ocrBtn
+                visible: tb.hasOcr
+                icon: "ocr"
+                onClicked: tb.ocrRequested()
+                HoverHandler {
+                    onHoveredChanged: hovered
+                        ? tb.showTip("Copy text", "Ctrl+T", ocrBtn.x + row.x + ocrBtn.width / 2)
+                        : tb.hideTip("Copy text")
                 }
             }
 
