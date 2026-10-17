@@ -153,6 +153,13 @@ ShellRoot {
     readonly property string uploadEndpoint: Quickshell.env("RISHOT_UPLOAD")
         || "https://litterbox.catbox.moe/resources/internals/api.php"
     readonly property string keybindFile: Quickshell.env("RISHOT_KEYBIND_FILE") || ""
+    /** Set by `rishot --clipboard/--raw`: export the selection here and quit, skipping the editor. */
+    readonly property string outFile: Quickshell.env("RISHOT_OUTFILE") || ""
+
+    onPhaseChanged: {
+        if (phase === "editing" && outFile !== "")
+            Qt.callLater(() => grabTo(outFile, () => Qt.quit()));
+    }
 
     /**
      * KWin runs none of the screencopy protocols, so spotting a Plasma session lets
@@ -865,7 +872,7 @@ ShellRoot {
     }
 
     function toolbarFor(win) {
-        if (phase !== "editing" || !globalSel) return { visible: false, x: 0, y: 0 };
+        if (phase !== "editing" || !globalSel || outFile !== "") return { visible: false, x: 0, y: 0 };
         if (anchorOverlay() !== win) return { visible: false, x: 0, y: 0 };
         return { visible: true };
     }

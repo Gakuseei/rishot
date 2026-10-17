@@ -10,14 +10,18 @@ usage() {
 	cat <<'EOF'
 rishot - screenshot + annotate
 
-usage: rishot [mode]
+usage: rishot [mode] [--clipboard | --raw]
 
 modes:
   (none), region   drag a region, or click a window to grab it (default)
   monitor          click a monitor to grab the whole output
 
 options:
+  -c, --clipboard  skip the editor, copy the PNG to the clipboard
+  --raw            skip the editor, write the PNG to stdout
   -h, --help       show this help
+
+--clipboard and --raw exit 1 when the capture is cancelled or fails.
 
 env:
   RISHOT_CONFIG_DIR  override the Quickshell config dir (must hold shell.qml)
@@ -28,12 +32,17 @@ EOF
 }
 
 mode=region
-case "${1:-}" in
-	monitor | --monitor | -m) mode=monitor ;;
-	region | --region | -r | "") mode=region ;;
-	-h | --help) usage; exit 0 ;;
-	*) printf 'rishot: unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
-esac
+output=""
+for arg; do
+	case "$arg" in
+		monitor | --monitor | -m) mode=monitor ;;
+		region | --region | -r) mode=region ;;
+		--clipboard | -c) output=clipboard ;;
+		--raw) output=raw ;;
+		-h | --help) usage; exit 0 ;;
+		*) printf 'rishot: unknown argument: %s\n' "$arg" >&2; usage >&2; exit 2 ;;
+	esac
+done
 
 dir="${RISHOT_CONFIG_DIR:-}"
 if [ -z "$dir" ]; then
@@ -70,11 +79,25 @@ rundir="${XDG_RUNTIME_DIR:-$HOME/.cache}"
 mkdir -p "$rundir" 2>/dev/null || rundir="/tmp"
 lock="$rundir/rishot.lock"
 exec 9>"$lock"
-flock -n 9 || { echo "rishot: already running" >&2; exit 0; }
+flock -n 9 || { echo "rishot: already running" >&2; [ -z "$output" ]; exit; }
 # XDG_PICTURES_DIR is rarely exported; ask user-dirs for the localised Pictures folder.
 if [ -z "${XDG_PICTURES_DIR:-}" ] && command -v xdg-user-dir >/dev/null 2>&1; then
 	pics=$(xdg-user-dir PICTURES 2>/dev/null || true)
 	[ -n "$pics" ] && [ "$pics" != "${HOME:-}" ] && export XDG_PICTURES_DIR="$pics"
 fi
 
-exec env RISHOT_MODE="$mode" qs -p "$dir"
+if [ -z "$output" ]; then exec env RISHOT_MODE="$mode" qs -p "$dir"; fi
+
+out="$rundir/rishot-out.png"
+rm -f "$out"
+env RISHOT_MODE="$mode" RISHOT_OUTFILE="$out" qs -p "$dir" >&2 || true
+[ -s "$out" ] || { rm -f "$out"; echo "rishot: cancelled" >&2; exit 1; }
+if [ "$output" = raw ]; then
+	cat "$out"
+	rm -f "$out"
+	exit 0
+fi
+wl-copy --type image/png <"$out" >/dev/null 9>&- || { rm -f "$out"; echo "rishot: wl-copy failed" >&2; exit 1; }
+rm -f "$out"
+echo "rishot: copied to clipboard" >&2
+command -v notify-send >/dev/null 2>&1 && notify-send -a rishot "Copied to clipboard" 9>&- || true

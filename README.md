@@ -59,6 +59,7 @@ Quickshell is in the official repos on Arch (extra), Fedora 44+, Void, and Debia
 - Scroll while drawing to resize the stroke or text live
 - Per-tool memory: each tool keeps its own colour, width and fill, saved across launches
 - Undo and redo, copy, save, upload
+- Skip the editor: `rishot --clipboard` copies the shot, `rishot --raw` writes the PNG to stdout
 - Save through a dialog or straight into a folder you pick, optionally copying to the clipboard at the same time
 - Settings panel: pixelate coarseness, blur strength, zoom factor, save options, key rebind
 
@@ -84,7 +85,15 @@ hl.bind("Print", hl.dsp.exec_cmd("rishot"))        # Hyprland (lua)
 bindsym Print exec rishot                          # Sway
 ```
 
-Run `rishot` for region or window, `rishot monitor` for a whole output.
+Run `rishot` for region or window, `rishot monitor` for a whole output. Add `--clipboard` to copy the shot without opening the editor, or `--raw` to write the PNG to stdout:
+
+```sh
+rishot --clipboard
+rishot monitor --raw > shot.png
+rishot --raw | tesseract - - | wl-copy
+```
+
+Both exit 1 when the capture is cancelled or fails.
 
 <details><summary>Dependencies</summary>
 
