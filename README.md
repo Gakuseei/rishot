@@ -60,7 +60,8 @@ Quickshell is in the official repos on Arch (extra), Fedora 44+, Void, and Debia
 - Per-tool memory: each tool keeps its own colour, width and fill, saved across launches
 - Undo and redo, copy, save, upload
 - Copy the text in a shot with OCR (`Ctrl+T`, needs `tesseract`)
-- Skip the editor: `rishot --clipboard` copies the shot, `rishot --raw` writes the PNG to stdout
+- Copy every QR code and barcode in a shot (`Ctrl+R`, needs `zbar`)
+- Skip the editor: `rishot --clipboard` copies the shot, `rishot --raw` writes the PNG to stdout, `rishot --text` and `rishot --qr` copy and print the text or codes
 - Save through a dialog or straight into a folder you pick, optionally copying to the clipboard at the same time
 - Settings panel: pixelate coarseness, blur strength, zoom factor, save options, key rebind
 
@@ -86,21 +87,21 @@ hl.bind("Print", hl.dsp.exec_cmd("rishot"))        # Hyprland (lua)
 bindsym Print exec rishot                          # Sway
 ```
 
-Run `rishot` for region, window, or the monitor under a desktop click, `rishot monitor` for a whole output. Add `--clipboard` to copy the shot without opening the editor, or `--raw` to write the PNG to stdout:
+Run `rishot` for region, window, or the monitor under a desktop click, `rishot monitor` for a whole output. Add `--clipboard` to copy the shot without opening the editor, `--raw` to write the PNG to stdout, `--text` or `--qr` to copy and print the text or codes in it:
 
 ```sh
 rishot --clipboard
 rishot monitor --raw > shot.png
-rishot --raw | tesseract - - | wl-copy
+rishot --qr
 ```
 
-Both exit 1 when the capture is cancelled or fails.
+All four exit 1 when the capture is cancelled or fails, `--text` and `--qr` also when the shot holds no text or code.
 
 <details><summary>Dependencies</summary>
 
 Required: `quickshell` (the `qs` binary), Qt 6 (declarative, svg, 5compat, wayland), `wl-clipboard`.
 
-Optional: `imagemagick` (multi-monitor stitch), `cliphist` (clip history), `curl` (upload), `kdialog` (save dialog and folder picker), `libnotify` (a desktop notification when a shot is copied, saved or uploaded), `tesseract` plus a language pack (OCR; reads with every installed language).
+Optional: `imagemagick` (multi-monitor stitch), `cliphist` (clip history), `curl` (upload), `kdialog` (save dialog and folder picker), `libnotify` (a desktop notification when a shot is copied, saved or uploaded), `tesseract` plus a language pack (OCR; reads with every installed language), `zbar` (QR codes and barcodes).
 
 On KDE: `spectacle`, which rishot captures through since KWin has no screencopy protocol. The installer pulls it in when it sees a KDE session.
 

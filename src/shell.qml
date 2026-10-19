@@ -29,6 +29,7 @@ ShellRoot {
     property bool spaceHeld: false
     property var selDrag: null
     property bool hasOcr: false
+    property bool hasQr: false
 
     property real toolbarDX: 0
     property real toolbarDY: 0
@@ -649,6 +650,14 @@ ShellRoot {
         });
     }
 
+    function doQr() {
+        var tmp = root.tmpDir + "/rishot-qr.png";
+        grabTo(tmp, function (ok) {
+            if (ok) qrProc.run(tmp);
+            else root.finish("Capture failed", "", true, "");
+        });
+    }
+
     function doUpload() {
         var tmp = root.tmpDir + "/rishot-upload.png";
         grabTo(tmp, function (ok) {
@@ -923,6 +932,31 @@ ShellRoot {
         }
     }
 
+    Process {
+        running: true
+        command: ["sh", "-c", "command -v zbarimg"]
+        onExited: (code) => root.hasQr = code === 0
+    }
+
+    /** Copies every QR code and barcode in the shot, one per line. zbarimg exits 4 when it finds none. */
+    Process {
+        id: qrProc
+        stdout: StdioCollector { id: qrOut }
+        function run(f) {
+            command = ["sh", "-c",
+                "text=$(zbarimg -q --raw \"$1\" 2>/dev/null); rc=$?; rm -f \"$1\"; "
+                + "[ $rc = 4 ] && exit 3; [ $rc = 0 ] || exit 1; "
+                + "exec 9>&-; printf %s \"$text\" | wl-copy >/dev/null 2>&1 && printf %s \"$text\" | head -n 1",
+                "_", f];
+            running = true;
+        }
+        onExited: (code) => {
+            if (code === 3) root.finish("No QR code found", "", true, "");
+            else if (code !== 0) root.finish("QR read failed", "", true, "");
+            else root.finish("QR copied", qrOut.text.trim().slice(0, 80), false, "");
+        }
+    }
+
     /** Creates the save dir only when a shot is written there, never at startup. */
     Process {
         id: mkdirProc
@@ -1007,6 +1041,7 @@ ShellRoot {
                         else if (e.key === Qt.Key_S) { if (root.phase === "editing") root.doSave(); e.accepted = true; }
                         else if (e.key === Qt.Key_U) { if (root.phase === "editing") root.doUpload(); e.accepted = true; }
                         else if (e.key === Qt.Key_T) { if (root.phase === "editing" && root.hasOcr) root.doOcr(); e.accepted = true; }
+                        else if (e.key === Qt.Key_R) { if (root.phase === "editing" && root.hasQr) root.doQr(); e.accepted = true; }
                         else if (e.key === Qt.Key_Z) { root.undo(); e.accepted = true; }
                         else if (e.key === Qt.Key_Y) { root.redo(); e.accepted = true; }
                         return;
@@ -1097,6 +1132,7 @@ ShellRoot {
                     canRedo: { root.commitRevision; return root.model ? root.model.canRedo() : false; }
                     settingsOpen: root.settingsOpen
                     hasOcr: root.hasOcr
+                    hasQr: root.hasQr
 
                     x: {
                         if (!win.selLocal) return 0;
@@ -1120,6 +1156,7 @@ ShellRoot {
                     onSaveRequested: root.doSave()
                     onUploadRequested: root.doUpload()
                     onOcrRequested: root.doOcr()
+                    onQrRequested: root.doQr()
                     onSettingsRequested: { root.openPopover = ""; root.settingsOpen = !root.settingsOpen; }
                     onDragMoved: (dx, dy) => {
                         if (!win.selLocal) return;

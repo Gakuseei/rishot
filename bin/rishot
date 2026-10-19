@@ -10,7 +10,7 @@ usage() {
 	cat <<'EOF'
 rishot - screenshot + annotate
 
-usage: rishot [mode] [--clipboard | --raw]
+usage: rishot [mode] [--clipboard | --raw | --text | --qr]
 
 modes:
   (none), region   drag a region, or click a window or the desktop to grab it (default)
@@ -19,9 +19,12 @@ modes:
 options:
   -c, --clipboard  skip the editor, copy the PNG to the clipboard
   --raw            skip the editor, write the PNG to stdout
+  --text           skip the editor, copy and print the text in the shot (OCR)
+  --qr             skip the editor, copy and print every QR code and barcode
   -h, --help       show this help
 
---clipboard and --raw exit 1 when the capture is cancelled or fails.
+All four exit 1 when the capture is cancelled or fails, --text and --qr also
+when the shot holds no text or code.
 
 env:
   RISHOT_CONFIG_DIR  override the Quickshell config dir (must hold shell.qml)
@@ -33,16 +36,24 @@ EOF
 
 mode=region
 output=""
+need=""
 for arg; do
 	case "$arg" in
 		monitor | --monitor | -m) mode=monitor ;;
 		region | --region | -r) mode=region ;;
 		--clipboard | -c) output=clipboard ;;
 		--raw) output=raw ;;
+		--text) output=text; need=tesseract ;;
+		--qr) output=qr; need=zbarimg ;;
 		-h | --help) usage; exit 0 ;;
 		*) printf 'rishot: unknown argument: %s\n' "$arg" >&2; usage >&2; exit 2 ;;
 	esac
 done
+
+if [ -n "$need" ] && ! command -v "$need" >/dev/null 2>&1; then
+	echo "rishot: --$output needs $need" >&2
+	exit 1
+fi
 
 dir="${RISHOT_CONFIG_DIR:-}"
 if [ -z "$dir" ]; then
@@ -93,6 +104,19 @@ trap 'rm -rf "$tmp"' EXIT
 out="$tmp/out.png"
 env RISHOT_MODE="$mode" RISHOT_OUTFILE="$out" qs -p "$dir" >&2 || true
 [ -s "$out" ] || { echo "rishot: cancelled" >&2; exit 1; }
+if [ "$output" = text ]; then
+	langs=$(tesseract --list-langs 2>/dev/null | tail -n +2 | grep -vx osd | paste -s -d+ -)
+	text=$(tesseract "$out" - ${langs:+-l "$langs"} 2>/dev/null | tr -d '\f')
+elif [ "$output" = qr ]; then
+	text=$(zbarimg -q --raw "$out" 2>/dev/null) || true
+fi
+if [ "$output" = text ] || [ "$output" = qr ]; then
+	[ -n "$(printf %s "$text" | tr -d '[:space:]')" ] || { echo "rishot: nothing found" >&2; exit 1; }
+	printf '%s\n' "$text"
+	printf %s "$text" | wl-copy >/dev/null 9>&- || { echo "rishot: wl-copy failed" >&2; exit 1; }
+	command -v notify-send >/dev/null 2>&1 && notify-send -a rishot "Copied to clipboard" "$(printf %s "$text" | head -n 1)" 9>&- || true
+	exit 0
+fi
 if [ "$output" = raw ]; then
 	cat "$out"
 	exit 0

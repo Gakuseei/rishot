@@ -13,7 +13,8 @@ optdepends=('imagemagick: stitch a multi-monitor capture into one image'
             'curl: upload captures'
             'kdialog: native save-as file dialog'
             'libnotify: desktop notification when a shot is copied, saved or uploaded'
-            'tesseract: copy the text in a shot (OCR)')
+            'tesseract: copy the text in a shot (OCR)'
+            'zbar: copy the QR codes and barcodes in a shot')
 provides=('rishot')
 conflicts=('rishot')
 makedepends=('git')

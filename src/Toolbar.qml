@@ -15,6 +15,7 @@ Item {
     property bool canRedo: false
     property bool settingsOpen: false
     property bool hasOcr: false
+    property bool hasQr: false
 
     readonly property real gearCenterX: gear.x + row.x + gear.width / 2
     readonly property real colorCenterX: colorBtn.x + row.x + colorBtn.width / 2
@@ -30,6 +31,7 @@ Item {
     signal saveRequested()
     signal uploadRequested()
     signal ocrRequested()
+    signal qrRequested()
     signal settingsRequested()
 
     /**
@@ -341,6 +343,17 @@ Item {
                     onHoveredChanged: hovered
                         ? tb.showTip("Copy text", "Ctrl+T", ocrBtn.x + row.x + ocrBtn.width / 2)
                         : tb.hideTip("Copy text")
+                }
+            }
+            IconButton {
+                id: qrBtn
+                visible: tb.hasQr
+                icon: "qr"
+                onClicked: tb.qrRequested()
+                HoverHandler {
+                    onHoveredChanged: hovered
+                        ? tb.showTip("Read QR", "Ctrl+R", qrBtn.x + row.x + qrBtn.width / 2)
+                        : tb.hideTip("Read QR")
                 }
             }
 
