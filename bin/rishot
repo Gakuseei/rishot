@@ -34,6 +34,12 @@ env:
 EOF
 }
 
+# Drops C0 and C1 controls. The sed loop removes one C1 pair per pass so a removal cannot splice a new one together.
+strip_ctl() {
+	c1=$(printf '\302[\200-\237]')
+	LC_ALL=C tr -d '\000-\010\013-\037\177' | LC_ALL=C sed -e ':a' -e "s/$c1//" -e 'ta'
+}
+
 mode=region
 output=""
 need=""
@@ -113,9 +119,9 @@ fi
 if [ "$output" = text ] || [ "$output" = qr ]; then
 	[ -n "$(printf %s "$text" | tr -d '[:space:]')" ] || { echo "rishot: nothing found" >&2; exit 1; }
 	# A code can carry any bytes: keep control chars off a terminal and markup out of the notification.
-	if [ -t 1 ]; then printf '%s\n' "$text" | LC_ALL=C sed 's/[\x00-\x08\x0b-\x1f\x7f]//g; s/\xc2[\x80-\x9f]//g'; else printf '%s\n' "$text"; fi
+	if [ -t 1 ]; then printf '%s\n' "$text" | strip_ctl; else printf '%s\n' "$text"; fi
 	printf %s "$text" | wl-copy >/dev/null 9>&- || { echo "rishot: wl-copy failed" >&2; exit 1; }
-	first=$(printf %s "$text" | head -n 1 | LC_ALL=C sed 's/[\x00-\x1f\x7f]//g; s/\xc2[\x80-\x9f]//g' | cut -c 1-80 | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+	first=$(printf %s "$text" | head -n 1 | strip_ctl | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
 	command -v notify-send >/dev/null 2>&1 && notify-send -a rishot -- "Copied to clipboard" "$first" 9>&- || true
 	exit 0
 fi
