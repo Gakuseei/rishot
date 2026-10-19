@@ -594,9 +594,9 @@ ShellRoot {
             command = ["setsid", "-f", "sh", "-c",
                 "exec 9>&-; command -v notify-send >/dev/null 2>&1 || exit 0; "
                 + "if [ -n \"$5\" ]; then "
-                + "act=$(notify-send -a rishot -i \"$1\" -u \"$2\" -A \"open=Open\" \"$3\" \"$4\"); "
+                + "act=$(notify-send -a rishot -i \"$1\" -u \"$2\" -A \"open=Open\" -- \"$3\" \"$4\"); "
                 + "[ \"$act\" = open ] && xdg-open \"$5\"; "
-                + "else notify-send -a rishot -i \"$1\" -u \"$2\" \"$3\" \"$4\"; fi",
+                + "else notify-send -a rishot -i \"$1\" -u \"$2\" -- \"$3\" \"$4\"; fi",
                 "_", root.iconPath, isError ? "critical" : "normal", summary, body, openPath];
             running = true;
         }
