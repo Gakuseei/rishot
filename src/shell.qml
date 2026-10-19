@@ -462,7 +462,7 @@ ShellRoot {
     }
     function pointerHover(gx, gy) {
         if (phase !== "selecting") { if (hoverWindow !== null) hoverWindow = null; return; }
-        hoverWindow = mode === "monitor" ? monitorAt(gx, gy) : windowAt(gx, gy);
+        hoverWindow = mode === "monitor" ? monitorAt(gx, gy) : windowAt(gx, gy) || monitorAt(gx, gy);
     }
     function pointerPressed(gx, gy) {
         if (resizing !== null) return;

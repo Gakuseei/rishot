@@ -527,11 +527,14 @@ Item {
         anchors.fill: parent
         enabled: overlay.ready
         hoverEnabled: true
-        acceptedButtons: Qt.LeftButton
+        acceptedButtons: overlay.phase === "selecting" ? Qt.LeftButton | Qt.RightButton : Qt.LeftButton
         cursorShape: overlay.spaceHeld && overlay.phase === "editing"
             ? (overlay.capturing ? Qt.ClosedHandCursor : Qt.OpenHandCursor)
             : Qt.CrossCursor
-        onPressed: (m) => overlay.pressedAt(m.x + overlay.sx, m.y + overlay.sy)
+        onPressed: (m) => {
+            if (m.button === Qt.RightButton) Qt.quit();
+            else overlay.pressedAt(m.x + overlay.sx, m.y + overlay.sy);
+        }
         onPositionChanged: (m) => {
             if (overlay.capturing) overlay.movedTo(m.x + overlay.sx, m.y + overlay.sy);
             else overlay.hovered(m.x + overlay.sx, m.y + overlay.sy);

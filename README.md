@@ -52,7 +52,7 @@ Quickshell is in the official repos on Arch (extra), Fedora 44+, Void, and Debia
 
 ## Features
 
-- Region, window, and monitor capture
+- Region, window, and monitor capture: click the desktop to grab its whole monitor, right-click to quit
 - Resize the selection after the fact with eight handles, or hold `Space` and drag to move it
 - Twelve tools: rectangle, ellipse, line, arrow, pen, highlighter, text, numbered steps, blur, pixelate, zoom
 - Rectangle and ellipse draw filled or outline, toggled with `f`
@@ -86,7 +86,7 @@ hl.bind("Print", hl.dsp.exec_cmd("rishot"))        # Hyprland (lua)
 bindsym Print exec rishot                          # Sway
 ```
 
-Run `rishot` for region or window, `rishot monitor` for a whole output. Add `--clipboard` to copy the shot without opening the editor, or `--raw` to write the PNG to stdout:
+Run `rishot` for region, window, or the monitor under a desktop click, `rishot monitor` for a whole output. Add `--clipboard` to copy the shot without opening the editor, or `--raw` to write the PNG to stdout:
 
 ```sh
 rishot --clipboard

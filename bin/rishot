@@ -2,7 +2,7 @@
 # rishot - Wayland screenshot + annotation overlay (Quickshell).
 # Launches the overlay on the current output set. Bind this command to a key
 # in your compositor config (see README). Region mode also lets you click a
-# single window to grab it.
+# single window, or the desktop for its monitor, to grab it.
 
 set -eu
 
@@ -13,7 +13,7 @@ rishot - screenshot + annotate
 usage: rishot [mode] [--clipboard | --raw]
 
 modes:
-  (none), region   drag a region, or click a window to grab it (default)
+  (none), region   drag a region, or click a window or the desktop to grab it (default)
   monitor          click a monitor to grab the whole output
 
 options:
