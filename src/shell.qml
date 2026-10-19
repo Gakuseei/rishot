@@ -769,10 +769,10 @@ ShellRoot {
                 + "-F reqtype=fileupload -F time=72h -F fileToUpload=@\"$1\" \"$2\"); "
                 + "rm -f \"$1\"; "
                 + "if [ -n \"$url\" ] && [ \"${url#http}\" != \"$url\" ]; then "
-                + "printf %s \"$url\" | wl-copy; "
+                + "printf %s \"$url\" | wl-copy --type 'text/plain;charset=utf-8'; "
                 + "command -v notify-send >/dev/null 2>&1 || exit 0; "
                 + "act=$(notify-send -a rishot -i \"$3\" -u normal -A \"copy=Copy link\" 'Link copied' \"$url\"); "
-                + "[ \"$act\" = copy ] && printf %s \"$url\" | wl-copy; "
+                + "[ \"$act\" = copy ] && printf %s \"$url\" | wl-copy --type 'text/plain;charset=utf-8'; "
                 + "else command -v notify-send >/dev/null 2>&1 && "
                 + "notify-send -a rishot -i \"$3\" -u critical rishot 'Upload failed'; fi",
                 "_", file, root.uploadEndpoint, root.iconPath];
@@ -923,7 +923,7 @@ ShellRoot {
                 + "text=$(tesseract \"$1\" - ${langs:+-l \"$langs\"} 2>/dev/null | tr -d '\\f'); "
                 + "rm -f \"$1\"; "
                 + "[ -n \"$(printf %s \"$text\" | tr -d '[:space:]')\" ] || exit 3; "
-                + "exec 9>&-; printf %s \"$text\" | wl-copy >/dev/null 2>&1 && printf %s \"$text\" | head -n 1",
+                + "exec 9>&-; printf %s \"$text\" | wl-copy --type 'text/plain;charset=utf-8' >/dev/null 2>&1 && printf %s \"$text\" | head -n 1",
                 "_", f];
             running = true;
         }
@@ -948,7 +948,7 @@ ShellRoot {
             command = ["sh", "-c",
                 "text=$(zbarimg -q --raw \"$1\" 2>/dev/null); rc=$?; rm -f \"$1\"; "
                 + "[ $rc = 4 ] && exit 3; [ $rc = 0 ] || exit 1; "
-                + "exec 9>&-; printf %s \"$text\" | wl-copy >/dev/null 2>&1 && printf %s \"$text\" | head -n 1",
+                + "exec 9>&-; printf %s \"$text\" | wl-copy --type 'text/plain;charset=utf-8' >/dev/null 2>&1 && printf %s \"$text\" | head -n 1",
                 "_", f];
             running = true;
         }
