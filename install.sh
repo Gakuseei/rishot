@@ -120,7 +120,7 @@ opt_install() {
 install_optionals() {
 	pm="$1"
 	shift
-	say "Installing optional deps (save dialog, clip history, upload, multi-monitor stitch)…"
+	say "Installing optional deps (save dialog, clip history, upload, multi-monitor stitch, QR codes)…"
 	for pkg in "$@"; do opt_install "$pm" "$pkg"; done
 }
 
@@ -134,7 +134,7 @@ install_deps() {
 		say "Installing deps via $pm (quickshell from extra or AUR)…"
 		"$pm" -S --needed --noconfirm quickshell wl-clipboard \
 			qt6-declarative qt6-svg qt6-5compat qt6-wayland || return 1
-		install_optionals "$pm" imagemagick cliphist curl kdialog libnotify
+		install_optionals "$pm" imagemagick cliphist curl kdialog libnotify zbar
 		;;
 	pacman)
 		say "Installing deps via pacman…"
@@ -147,7 +147,7 @@ install_deps() {
 				return 1
 			}
 		fi
-		install_optionals pacman imagemagick cliphist curl kdialog libnotify
+		install_optionals pacman imagemagick cliphist curl kdialog libnotify zbar
 		;;
 	apt)
 		say "Installing deps via apt…"
@@ -158,7 +158,7 @@ install_deps() {
 		sudo apt-get update || true
 		sudo apt-get install -y quickshell wl-clipboard \
 			libqt6svg6 qt6-wayland || return 1
-		install_optionals apt imagemagick cliphist curl kdialog libnotify-bin
+		install_optionals apt imagemagick cliphist curl kdialog libnotify-bin zbar-tools
 		;;
 	dnf)
 		say "Installing deps via dnf…"
@@ -186,7 +186,7 @@ install_deps() {
 				return 1
 			fi
 		fi
-		install_optionals dnf ImageMagick cliphist curl kdialog libnotify
+		install_optionals dnf ImageMagick cliphist curl kdialog libnotify zbar
 		;;
 	zypper)
 		say "Installing deps via zypper…"
@@ -198,14 +198,14 @@ install_deps() {
 			warn "(e.g. home:AvengeMedia:danklinux), then install 'quickshell'"
 			return 1
 		}
-		install_optionals zypper ImageMagick cliphist curl kdialog libnotify-tools
+		install_optionals zypper ImageMagick cliphist curl kdialog libnotify-tools zbar
 		;;
 	xbps)
 		say "Installing deps via xbps…"
 		# Void names the 5compat module qt6-qt5compat (not qt6-5compat).
 		sudo xbps-install -Sy quickshell wl-clipboard \
 			qt6-declarative qt6-svg qt6-qt5compat qt6-wayland || return 1
-		install_optionals xbps ImageMagick cliphist curl kdialog libnotify
+		install_optionals xbps ImageMagick cliphist curl kdialog libnotify zbar
 		;;
 	nix)
 		warn "Nix detected. This installer will not mutate a Nix system."
