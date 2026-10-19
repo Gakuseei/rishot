@@ -121,7 +121,7 @@ if [ "$output" = text ] || [ "$output" = qr ]; then
 	# A code can carry any bytes: keep control chars off a terminal and markup out of the notification.
 	if [ -t 1 ]; then printf '%s\n' "$text" | strip_ctl; else printf '%s\n' "$text"; fi
 	printf %s "$text" | wl-copy --type 'text/plain;charset=utf-8' >/dev/null 9>&- || { echo "rishot: wl-copy failed" >&2; exit 1; }
-	first=$(printf %s "$text" | head -n 1 | strip_ctl | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+	first=$(printf %s "$text" | head -n 1 | strip_ctl | sed 's/\\/\\\\/g; s/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
 	command -v notify-send >/dev/null 2>&1 && notify-send -a rishot -- "Copied to clipboard" "$first" 9>&- || true
 	exit 0
 fi

@@ -580,11 +580,12 @@ ShellRoot {
      * notification outlives it to catch the click and xdg-open the file (the
      * action signal would reach a dead app otherwise). notify-send is optional;
      * the sh wrapper still exits 0 when it is missing. The body is escaped
-     * because notify-send reads it as markup and OCR or QR text is untrusted.
+     * because OCR or QR text is untrusted and notify-send reads it as markup
+     * after g_strcompress turns backslash escapes like \074 into characters.
      */
     function finish(summary, body, isError, openPath) {
         dialogMode = false;
-        var safe = (body || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        var safe = (body || "").replace(/\\/g, "\\\\").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         notifyProc.send(summary, safe, isError === true, openPath || "");
     }
 
