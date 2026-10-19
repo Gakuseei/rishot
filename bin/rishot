@@ -112,9 +112,11 @@ elif [ "$output" = qr ]; then
 fi
 if [ "$output" = text ] || [ "$output" = qr ]; then
 	[ -n "$(printf %s "$text" | tr -d '[:space:]')" ] || { echo "rishot: nothing found" >&2; exit 1; }
-	printf '%s\n' "$text"
+	# A code can carry any bytes: keep control chars off a terminal and markup out of the notification.
+	if [ -t 1 ]; then printf '%s\n' "$text" | tr -d '\000-\010\013-\037\177'; else printf '%s\n' "$text"; fi
 	printf %s "$text" | wl-copy >/dev/null 9>&- || { echo "rishot: wl-copy failed" >&2; exit 1; }
-	command -v notify-send >/dev/null 2>&1 && notify-send -a rishot "Copied to clipboard" "$(printf %s "$text" | head -n 1)" 9>&- || true
+	first=$(printf %s "$text" | head -n 1 | tr -d '\000-\037\177' | cut -c 1-80 | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+	command -v notify-send >/dev/null 2>&1 && notify-send -a rishot "Copied to clipboard" "$first" 9>&- || true
 	exit 0
 fi
 if [ "$output" = raw ]; then
