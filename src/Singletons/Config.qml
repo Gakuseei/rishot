@@ -13,6 +13,8 @@ Singleton {
     property bool copyOnSave: false
     property bool skipSaveDialog: false
     property string saveDir: ""
+    /** Catalogue code picked in the settings panel; empty means follow the locale. */
+    property string language: ""
 
     /**
      * Per-tool drawing style, keyed by tool id: { color, width, filled }. The
@@ -57,6 +59,7 @@ Singleton {
             copyOnSave: config.copyOnSave,
             skipSaveDialog: config.skipSaveDialog,
             saveDir: config.saveDir,
+            language: config.language,
             toolStyle: config.toolStyle
         }, null, 2));
     }
@@ -76,6 +79,7 @@ Singleton {
                 if (typeof c.copyOnSave === "boolean") config.copyOnSave = c.copyOnSave;
                 if (typeof c.skipSaveDialog === "boolean") config.skipSaveDialog = c.skipSaveDialog;
                 if (typeof c.saveDir === "string") config.saveDir = c.saveDir;
+                if (typeof c.language === "string") config.language = c.language;
                 if (c.toolStyle && typeof c.toolStyle === "object") config.toolStyle = c.toolStyle;
             } catch (e) {
                 console.log("rishot: config parse failed, using defaults: " + e);

@@ -1,2 +1,3 @@
 singleton Theme Theme.qml
 singleton Config Config.qml
+singleton I18n I18n.qml
