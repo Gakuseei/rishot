@@ -23,6 +23,7 @@ check(Array.isArray(manifest) && manifest.length > 0, "languages.json is a non-e
 check(manifest.some((l) => l.code === "en"), "manifest lists the English source catalogue");
 
 const codes = manifest.map((l) => l.code);
+check(new Set(codes).size === codes.length, "manifest codes are unique");
 for (const locale of manifest) {
     check(typeof locale.code === "string" && /^[a-z]{2}(_[A-Z]{2})?$/.test(locale.code),
         "manifest code is a language tag: " + locale.code);

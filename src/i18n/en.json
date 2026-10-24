@@ -11,7 +11,6 @@
   "tool.blur": "Blur",
   "tool.pixelate": "Pixelate",
   "tool.zoom": "Zoom",
-
   "tooltip.color": "Colour",
   "tooltip.width": "Width",
   "tooltip.fill": "Fill",
@@ -23,8 +22,7 @@
   "tooltip.ocr": "Copy text",
   "tooltip.qr": "Read QR",
   "tooltip.settings": "Settings",
-
-  "settings.title": "settings",
+  "settings.title": "{brand} settings",
   "settings.group.effects": "Effects",
   "settings.pixelate": "Pixelate",
   "settings.blur": "Blur",
@@ -36,13 +34,13 @@
   "settings.copy_on_save": "Copy to clipboard on save",
   "settings.group.shortcut": "Shortcut",
   "settings.record": "Record",
+  "settings.hotkey_unset": "unset",
   "settings.press_key": "Press a key…",
   "settings.hint.lua": "add require(\"rishot\") to hyprland.lua, then restart Hyprland to apply",
   "settings.hint.conf": "add: source = ~/.config/hypr/rishot.conf",
   "settings.hint.other": "bind 'rishot' to a key in your compositor config",
   "settings.group.language": "Language",
   "settings.language.auto": "Auto",
-
   "notify.capture_failed": "Capture failed",
   "notify.screenshot_saved": "Screenshot saved",
   "notify.screenshot_copied": "Screenshot copied",

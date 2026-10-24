@@ -331,7 +331,7 @@ Item {
                     Layout.preferredHeight: 18
                 }
                 Text {
-                    text: '<font color="#e0563b">rishot</font> ' + I18n.tr("settings.title")
+                    text: I18n.tr("settings.title", { brand: '<font color="#e0563b">rishot</font>' })
                     textFormat: Text.StyledText
                     color: Theme.white
                     font.family: Theme.sansFamily
@@ -471,7 +471,7 @@ Item {
                 spacing: 6
                 ChoiceButton {
                     label: I18n.tr("settings.language.auto")
-                    checked: Config.language === ""
+                    checked: Config.language === "" || I18n.available.indexOf(Config.language) < 0
                     onClicked: { Config.language = ""; Config.save(); }
                 }
                 Repeater {
@@ -495,7 +495,7 @@ Item {
                 spacing: 12
 
                 Text {
-                    text: panel.hotkey
+                    text: panel.hotkey === "unset" ? I18n.tr("settings.hotkey_unset") : panel.hotkey
                     color: panel.idle
                     font.family: Theme.monoFamily
                     font.pixelSize: 13

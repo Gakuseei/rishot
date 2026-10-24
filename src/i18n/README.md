@@ -21,8 +21,9 @@ ships plain JSON catalogues read at runtime by the `I18n` singleton
   fragments; pass values through `{name}` placeholders instead.
 - Never translate the product name, tool ids, keyboard shortcut names
   (`Ctrl+S`), file names or paths.
-- `settings.title` is the word after the brand, not the whole heading: the
-  panel composes `<font color="#e0563b">rishot</font> ` plus that string.
+- `settings.title` is the whole heading, brand included: `"{brand} settings"`
+  in English, `"Ajustes de {brand}"` in Spanish. The panel passes the styled
+  brand as the `{brand}` parameter so word order can change per language.
 - No plural forms yet. If a string needs one, add `_one`/`_other` keys and
   extend `lib/i18n.js` at the same time.
 

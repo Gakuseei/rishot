@@ -11,7 +11,6 @@
   "tool.blur": "Desenfoque",
   "tool.pixelate": "Pixelar",
   "tool.zoom": "Zoom",
-
   "tooltip.color": "Color",
   "tooltip.width": "Grosor",
   "tooltip.fill": "Relleno",
@@ -23,8 +22,7 @@
   "tooltip.ocr": "Copiar texto",
   "tooltip.qr": "Leer QR",
   "tooltip.settings": "Ajustes",
-
-  "settings.title": "ajustes",
+  "settings.title": "Ajustes de {brand}",
   "settings.group.effects": "Efectos",
   "settings.pixelate": "Pixelar",
   "settings.blur": "Desenfoque",
@@ -36,13 +34,13 @@
   "settings.copy_on_save": "Copiar al portapapeles al guardar",
   "settings.group.shortcut": "Atajo",
   "settings.record": "Grabar",
+  "settings.hotkey_unset": "sin asignar",
   "settings.press_key": "Presiona una tecla…",
   "settings.hint.lua": "añade require(\"rishot\") a hyprland.lua y reinicia Hyprland para aplicar",
   "settings.hint.conf": "añade: source = ~/.config/hypr/rishot.conf",
   "settings.hint.other": "asigna 'rishot' a una tecla en la configuración de tu compositor",
   "settings.group.language": "Idioma",
   "settings.language.auto": "Auto",
-
   "notify.capture_failed": "Error al capturar",
   "notify.screenshot_saved": "Captura guardada",
   "notify.screenshot_copied": "Captura copiada",

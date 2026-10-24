@@ -115,6 +115,7 @@ Singleton {
         path: i18n.lang === Lib.FALLBACK_LOCALE
             ? ""
             : Qt.resolvedUrl("../i18n/" + i18n.lang + ".json")
+        blockLoading: true
         printErrors: false
         onLoaded: i18n.revision++
         onLoadFailed: (error) => console.warn("rishot: i18n/" + i18n.lang + ".json load failed: " + error)

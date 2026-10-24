@@ -407,4 +407,10 @@ Item {
             }
         }
     }
+
+    /** Drops a tooltip that is still up when the interface language changes. */
+    Connections {
+        target: I18n
+        function onRevisionChanged() { tb.hoverShown = false; }
+    }
 }
