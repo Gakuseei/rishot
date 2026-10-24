@@ -3,6 +3,8 @@ const require = createRequire(import.meta.url);
 const { normalizeLocale, resolveLocale, lookup, format, translate } = require("./i18n.js");
 
 let failed = 0;
+
+/** Prints PASS, or FAIL with both values, and counts the failure. */
 function eq(actual, expected, msg) {
     const a = JSON.stringify(actual), e = JSON.stringify(expected);
     if (a === e) console.log("PASS " + msg);

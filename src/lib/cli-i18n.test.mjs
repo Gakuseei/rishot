@@ -11,6 +11,8 @@ const desktop = join(root, "rishot.desktop");
 const catalogues = join(root, "src", "i18n");
 
 let failed = 0;
+
+/** Prints PASS, or FAIL, and counts the failure. */
 function check(ok, msg) {
     if (ok) console.log("PASS " + msg);
     else { failed++; console.log("FAIL " + msg); }

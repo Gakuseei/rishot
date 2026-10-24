@@ -6,11 +6,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 const dir = join(here, "..", "i18n");
 
 let failed = 0;
+
+/** Prints PASS, or FAIL, and counts the failure. */
 function check(ok, msg) {
     if (ok) console.log("PASS " + msg);
     else { failed++; console.log("FAIL " + msg); }
 }
 
+/** Parses one catalogue file from src/i18n by file name. */
 function readJson(name) {
     return JSON.parse(readFileSync(join(dir, name), "utf8"));
 }

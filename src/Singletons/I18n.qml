@@ -69,11 +69,13 @@ Singleton {
         return Lib.translate(key, params || null, catalog, fallbackCatalog, warnMissing);
     }
 
+    /** Reads one environment variable as a string; a missing one is empty. */
     function env(name) {
         var value = Quickshell.env(name);
         return value === undefined || value === null ? "" : String(value);
     }
 
+    /** Parses a loaded FileView as a JSON object; an unreadable one is empty. */
     function parse(view, name) {
         if (String(view.path) === "") return ({});
         // blockLoading makes this first read wait for the catalogue; later
@@ -89,6 +91,7 @@ Singleton {
         }
     }
 
+    /** Logs a missing key; lib/i18n.js calls this once per key. */
     function warnMissing(key) {
         console.warn("rishot: missing translation key: " + key);
     }
