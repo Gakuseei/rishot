@@ -142,7 +142,7 @@ The settings panel writes `~/.config/rishot/config.json` (or `$XDG_CONFIG_HOME/r
 <details><summary>Environment variables</summary>
 
 - `RISHOT_CONFIG_DIR`: the Quickshell config dir (the one holding `shell.qml`)
-- `RISHOT_LANG`: force the interface language (`en`, `es`); the settings panel choice wins over it
+- `RISHOT_LANG`: force the interface language (`en`, `es`) for the overlay and the CLI messages; the settings panel choice overrides it inside the app
 - `RISHOT_SAVEDIR`: the auto-save directory
 - `RISHOT_CAPTURE`: force the capture backend, `screencopy` or `image` (otherwise picked per compositor)
 - `RISHOT_UPLOAD`: the upload endpoint (curl form-post target)

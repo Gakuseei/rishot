@@ -6,8 +6,92 @@
 
 set -eu
 
+# The launcher ships as a single file (the AUR package installs only bin/rishot),
+# so its messages cannot come from src/i18n/*.json. They live here in both
+# languages and pick one with the same precedence as the overlay.
+msg_lang() {
+	for _src in "$@"; do
+		[ -n "$_src" ] || continue
+		_rest=$_src
+		while [ -n "$_rest" ]; do
+			_cand=${_rest%%:*}
+			if [ "$_cand" = "$_rest" ]; then _rest=""; else _rest=${_rest#*:}; fi
+			_cand=${_cand%%@*}
+			_cand=${_cand%%.*}
+			_cand=$(printf '%s' "$_cand" | tr '[:upper:]-' '[:lower:]_')
+			case "$_cand" in
+				es | es_*) printf 'es'; return 0 ;;
+				en | en_*) printf 'en'; return 0 ;;
+			esac
+		done
+	done
+	printf 'en'
+}
+
+LANG_CODE=$(msg_lang "${RISHOT_LANG:-}" "${LANGUAGE:-}" "${LC_ALL:-}" "${LC_MESSAGES:-}" "${LANG:-}")
+
+# msg <key> [args] prints one message body without the "rishot: " prefix.
+msg() {
+	case "$LANG_CODE:$1" in
+	es:unknown_argument) printf 'argumento desconocido: %s' "$2" ;;
+	*:unknown_argument) printf 'unknown argument: %s' "$2" ;;
+	es:needs_tool) printf -- '--%s necesita %s' "$2" "$3" ;;
+	*:needs_tool) printf -- '--%s needs %s' "$2" "$3" ;;
+	es:no_config_dir) printf 'no se pudo localizar el directorio de configuración (define RISHOT_CONFIG_DIR)' ;;
+	*:no_config_dir) printf 'could not locate the config dir (set RISHOT_CONFIG_DIR)' ;;
+	es:no_qs) printf "'qs' (quickshell) no está en PATH" ;;
+	*:no_qs) printf "'qs' (quickshell) not found in PATH" ;;
+	es:already_running) printf 'ya se está ejecutando' ;;
+	*:already_running) printf 'already running' ;;
+	es:cancelled) printf 'cancelado' ;;
+	*:cancelled) printf 'cancelled' ;;
+	es:nothing_found) printf 'no se encontró nada' ;;
+	*:nothing_found) printf 'nothing found' ;;
+	es:wl_copy_failed) printf 'wl-copy falló' ;;
+	*:wl_copy_failed) printf 'wl-copy failed' ;;
+	es:copied) printf 'copiado al portapapeles' ;;
+	*:copied) printf 'copied to clipboard' ;;
+	es:copied_summary) printf 'Copiado al portapapeles' ;;
+	*:copied_summary) printf 'Copied to clipboard' ;;
+	esac
+}
+
+# err <key> [args] prints one "rishot: " line on stderr.
+err() {
+	printf 'rishot: ' >&2
+	msg "$@" >&2
+	printf '\n' >&2
+}
+
 usage() {
-	cat <<'EOF'
+	if [ "$LANG_CODE" = es ]; then
+		cat <<'EOF'
+rishot - captura de pantalla + anotación
+
+uso: rishot [modo] [--clipboard | --raw | --text | --qr]
+
+modos:
+  (ninguno), region   arrastra una región, o haz clic en una ventana o en el escritorio para capturar esa zona (predeterminado)
+  monitor             haz clic en un monitor para capturar la salida completa
+
+opciones:
+  -c, --clipboard  omite el editor y copia el PNG al portapapeles
+  --raw            omite el editor y escribe el PNG en la salida estándar
+  --text           omite el editor, copia e imprime el texto de la captura (OCR)
+  --qr             omite el editor, copia e imprime todos los códigos QR y de barras
+  -h, --help       muestra esta ayuda
+
+Las cuatro opciones terminan con 1 cuando la captura se cancela o falla; --text y --qr
+también cuando la captura no tiene texto ni códigos.
+
+entorno:
+  RISHOT_CONFIG_DIR  cambia el directorio de configuración de Quickshell (debe contener shell.qml)
+  RISHOT_UPLOAD      cambia el destino de subida (destino https form-post)
+  RISHOT_SAVEDIR     cambia el directorio de guardado automático
+  RISHOT_KEYBIND_FILE  escribe aquí el atajo reasignado en la aplicación en vez de autodetectarlo
+EOF
+	else
+		cat <<'EOF'
 rishot - screenshot + annotate
 
 usage: rishot [mode] [--clipboard | --raw | --text | --qr]
@@ -32,6 +116,7 @@ env:
   RISHOT_SAVEDIR     override the auto-save directory
   RISHOT_KEYBIND_FILE  write the in-app rebind here instead of autodetecting
 EOF
+	fi
 }
 
 # Drops C0 and C1 controls. The sed loop removes one C1 pair per pass so a removal cannot splice a new one together.
@@ -52,12 +137,12 @@ for arg; do
 		--text) output=text; need=tesseract ;;
 		--qr) output=qr; need=zbarimg ;;
 		-h | --help) usage; exit 0 ;;
-		*) printf 'rishot: unknown argument: %s\n' "$arg" >&2; usage >&2; exit 2 ;;
+		*) err unknown_argument "$arg"; usage >&2; exit 2 ;;
 	esac
 done
 
 if [ -n "$need" ] && ! command -v "$need" >/dev/null 2>&1; then
-	echo "rishot: --$output needs $need" >&2
+	err needs_tool "$output" "$need"
 	exit 1
 fi
 
@@ -78,12 +163,12 @@ if [ -z "$dir" ]; then
 fi
 
 if [ -z "$dir" ] || [ ! -f "$dir/shell.qml" ]; then
-	echo "rishot: could not locate the config dir (set RISHOT_CONFIG_DIR)" >&2
+	err no_config_dir
 	exit 1
 fi
 
 command -v qs >/dev/null 2>&1 || {
-	echo "rishot: 'qs' (quickshell) not found in PATH" >&2
+	err no_qs
 	exit 1
 }
 
@@ -96,7 +181,7 @@ rundir="${XDG_RUNTIME_DIR:-$HOME/.cache}"
 mkdir -p "$rundir" 2>/dev/null || rundir="/tmp"
 lock="$rundir/rishot.lock"
 exec 9>"$lock"
-flock -n 9 || { echo "rishot: already running" >&2; [ -z "$output" ]; exit; }
+flock -n 9 || { err already_running; [ -z "$output" ]; exit; }
 # XDG_PICTURES_DIR is rarely exported; ask user-dirs for the localised Pictures folder.
 if [ -z "${XDG_PICTURES_DIR:-}" ] && command -v xdg-user-dir >/dev/null 2>&1; then
 	pics=$(xdg-user-dir PICTURES 2>/dev/null || true)
@@ -109,7 +194,7 @@ tmp=$(mktemp -d "$rundir/rishot.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 out="$tmp/out.png"
 env RISHOT_MODE="$mode" RISHOT_OUTFILE="$out" qs -p "$dir" >&2 || true
-[ -s "$out" ] || { echo "rishot: cancelled" >&2; exit 1; }
+[ -s "$out" ] || { err cancelled; exit 1; }
 if [ "$output" = text ]; then
 	langs=$(tesseract --list-langs 2>/dev/null | tail -n +2 | grep -vx osd | paste -s -d+ -)
 	text=$(tesseract "$out" - ${langs:+-l "$langs"} 2>/dev/null | tr -d '\f')
@@ -117,18 +202,18 @@ elif [ "$output" = qr ]; then
 	text=$(zbarimg -q --raw "$out" 2>/dev/null) || true
 fi
 if [ "$output" = text ] || [ "$output" = qr ]; then
-	[ -n "$(printf %s "$text" | tr -d '[:space:]')" ] || { echo "rishot: nothing found" >&2; exit 1; }
+	[ -n "$(printf %s "$text" | tr -d '[:space:]')" ] || { err nothing_found; exit 1; }
 	# A code can carry any bytes: keep control chars off a terminal and markup out of the notification.
 	if [ -t 1 ]; then printf '%s\n' "$text" | strip_ctl; else printf '%s\n' "$text"; fi
-	printf %s "$text" | wl-copy --type 'text/plain;charset=utf-8' >/dev/null 9>&- || { echo "rishot: wl-copy failed" >&2; exit 1; }
+	printf %s "$text" | wl-copy --type 'text/plain;charset=utf-8' >/dev/null 9>&- || { err wl_copy_failed; exit 1; }
 	first=$(printf %s "$text" | head -n 1 | strip_ctl | sed 's/\\/\\\\/g; s/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
-	command -v notify-send >/dev/null 2>&1 && notify-send -a rishot -- "Copied to clipboard" "$first" 9>&- || true
+	command -v notify-send >/dev/null 2>&1 && notify-send -a rishot -- "$(msg copied_summary)" "$first" 9>&- || true
 	exit 0
 fi
 if [ "$output" = raw ]; then
 	cat "$out"
 	exit 0
 fi
-wl-copy --type image/png <"$out" >/dev/null 9>&- || { echo "rishot: wl-copy failed" >&2; exit 1; }
-echo "rishot: copied to clipboard" >&2
-command -v notify-send >/dev/null 2>&1 && notify-send -a rishot "Copied to clipboard" 9>&- || true
+wl-copy --type image/png <"$out" >/dev/null 9>&- || { err wl_copy_failed; exit 1; }
+err copied
+command -v notify-send >/dev/null 2>&1 && notify-send -a rishot "$(msg copied_summary)" 9>&- || true

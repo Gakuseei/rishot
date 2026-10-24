@@ -49,6 +49,18 @@ A regional tag falls back to its language (`es_AR` uses `es` when there is no
 3. Run `sh src/lib/run-tests.sh`; `translations.test.mjs` checks JSON validity,
    key parity, placeholder parity, duplicate keys and the manifest.
 
+## Launcher and desktop entry
+
+`bin/rishot` ships as a single file (the AUR package installs only that file),
+so it cannot read `src/i18n/*.json`. Its messages live in the script itself, in
+English and Spanish, and pick one with the same precedence as the overlay
+(`RISHOT_LANG`, then `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`, then English).
+Add a translation as an `es:<key>` branch next to the `*:<key>` fallback;
+`src/lib/cli-i18n.test.mjs` fails when the two sets drift apart.
+
+`rishot.desktop` uses the freedesktop `Comment[es]` key and keeps `Comment=` as
+the English default, so the launcher entry is localised without a build step.
+
 ## Trying a translation
 
 ```sh
