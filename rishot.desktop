@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=rishot
 Comment=Screenshot + annotation
+Comment[es]=Captura de pantalla con anotaciones
 Exec=rishot
 Terminal=false
 Type=Application

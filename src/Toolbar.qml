@@ -208,8 +208,8 @@ Item {
                 }
                 HoverHandler {
                     onHoveredChanged: hovered
-                        ? tb.showTip("Colour", "c", colorBtn.x + row.x + colorBtn.width / 2)
-                        : tb.hideTip("Colour")
+                        ? tb.showTip(I18n.tr("tooltip.color"), "c", colorBtn.x + row.x + colorBtn.width / 2)
+                        : tb.hideTip(I18n.tr("tooltip.color"))
                 }
             }
 
@@ -239,8 +239,8 @@ Item {
                 }
                 HoverHandler {
                     onHoveredChanged: hovered
-                        ? tb.showTip("Width", "w", widthBtn.x + row.x + widthBtn.width / 2)
-                        : tb.hideTip("Width")
+                        ? tb.showTip(I18n.tr("tooltip.width"), "w", widthBtn.x + row.x + widthBtn.width / 2)
+                        : tb.hideTip(I18n.tr("tooltip.width"))
                 }
             }
 
@@ -272,8 +272,8 @@ Item {
                 }
                 HoverHandler {
                     onHoveredChanged: hovered
-                        ? tb.showTip("Fill", "f", fillBtn.x + row.x + fillBtn.width / 2)
-                        : tb.hideTip("Fill")
+                        ? tb.showTip(I18n.tr("tooltip.fill"), "f", fillBtn.x + row.x + fillBtn.width / 2)
+                        : tb.hideTip(I18n.tr("tooltip.fill"))
                 }
             }
 
@@ -286,8 +286,8 @@ Item {
                 onClicked: { if (tb.canUndo) tb.undoRequested(); }
                 HoverHandler {
                     onHoveredChanged: hovered
-                        ? tb.showTip("Undo", "Ctrl+Z", undoBtn.x + row.x + undoBtn.width / 2)
-                        : tb.hideTip("Undo")
+                        ? tb.showTip(I18n.tr("tooltip.undo"), "Ctrl+Z", undoBtn.x + row.x + undoBtn.width / 2)
+                        : tb.hideTip(I18n.tr("tooltip.undo"))
                 }
             }
             IconButton {
@@ -297,8 +297,8 @@ Item {
                 onClicked: { if (tb.canRedo) tb.redoRequested(); }
                 HoverHandler {
                     onHoveredChanged: hovered
-                        ? tb.showTip("Redo", "Ctrl+Y", redoBtn.x + row.x + redoBtn.width / 2)
-                        : tb.hideTip("Redo")
+                        ? tb.showTip(I18n.tr("tooltip.redo"), "Ctrl+Y", redoBtn.x + row.x + redoBtn.width / 2)
+                        : tb.hideTip(I18n.tr("tooltip.redo"))
                 }
             }
 
@@ -310,8 +310,8 @@ Item {
                 onClicked: tb.copyRequested()
                 HoverHandler {
                     onHoveredChanged: hovered
-                        ? tb.showTip("Copy", "Ctrl+C", copyBtn.x + row.x + copyBtn.width / 2)
-                        : tb.hideTip("Copy")
+                        ? tb.showTip(I18n.tr("tooltip.copy"), "Ctrl+C", copyBtn.x + row.x + copyBtn.width / 2)
+                        : tb.hideTip(I18n.tr("tooltip.copy"))
                 }
             }
             IconButton {
@@ -320,8 +320,8 @@ Item {
                 onClicked: tb.saveRequested()
                 HoverHandler {
                     onHoveredChanged: hovered
-                        ? tb.showTip("Save", "Ctrl+S", saveBtn.x + row.x + saveBtn.width / 2)
-                        : tb.hideTip("Save")
+                        ? tb.showTip(I18n.tr("tooltip.save"), "Ctrl+S", saveBtn.x + row.x + saveBtn.width / 2)
+                        : tb.hideTip(I18n.tr("tooltip.save"))
                 }
             }
             IconButton {
@@ -330,8 +330,8 @@ Item {
                 onClicked: tb.uploadRequested()
                 HoverHandler {
                     onHoveredChanged: hovered
-                        ? tb.showTip("Upload · public", "Ctrl+U", uploadBtn.x + row.x + uploadBtn.width / 2)
-                        : tb.hideTip("Upload · public")
+                        ? tb.showTip(I18n.tr("tooltip.upload"), "Ctrl+U", uploadBtn.x + row.x + uploadBtn.width / 2)
+                        : tb.hideTip(I18n.tr("tooltip.upload"))
                 }
             }
             IconButton {
@@ -341,8 +341,8 @@ Item {
                 onClicked: tb.ocrRequested()
                 HoverHandler {
                     onHoveredChanged: hovered
-                        ? tb.showTip("Copy text", "Ctrl+T", ocrBtn.x + row.x + ocrBtn.width / 2)
-                        : tb.hideTip("Copy text")
+                        ? tb.showTip(I18n.tr("tooltip.ocr"), "Ctrl+T", ocrBtn.x + row.x + ocrBtn.width / 2)
+                        : tb.hideTip(I18n.tr("tooltip.ocr"))
                 }
             }
             IconButton {
@@ -352,8 +352,8 @@ Item {
                 onClicked: tb.qrRequested()
                 HoverHandler {
                     onHoveredChanged: hovered
-                        ? tb.showTip("Read QR", "Ctrl+R", qrBtn.x + row.x + qrBtn.width / 2)
-                        : tb.hideTip("Read QR")
+                        ? tb.showTip(I18n.tr("tooltip.qr"), "Ctrl+R", qrBtn.x + row.x + qrBtn.width / 2)
+                        : tb.hideTip(I18n.tr("tooltip.qr"))
                 }
             }
 
@@ -366,8 +366,8 @@ Item {
                 onClicked: tb.settingsRequested()
                 HoverHandler {
                     onHoveredChanged: hovered
-                        ? tb.showTip("Settings", ",", gear.x + row.x + gear.width / 2)
-                        : tb.hideTip("Settings")
+                        ? tb.showTip(I18n.tr("tooltip.settings"), ",", gear.x + row.x + gear.width / 2)
+                        : tb.hideTip(I18n.tr("tooltip.settings"))
                 }
             }
         }
@@ -406,5 +406,11 @@ Item {
                 font.pixelSize: 12
             }
         }
+    }
+
+    /** Drops a tooltip that is still up when the interface language changes. */
+    Connections {
+        target: I18n
+        function onRevisionChanged() { tb.hoverShown = false; }
     }
 }

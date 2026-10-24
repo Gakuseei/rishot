@@ -1,0 +1,78 @@
+# Translations
+
+Quickshell loads rishot through a plain `QQmlEngine` and never installs a
+`QTranslator`, so `qsTr()` and `.qm` catalogues cannot work. rishot therefore
+ships plain JSON catalogues read at runtime by the `I18n` singleton
+(`src/Singletons/I18n.qml`).
+
+## Files
+
+- `languages.json`: the manifest. Every catalogue must be listed here so the
+  settings panel can offer it and the tests know what to validate.
+- `<code>.json`: one flat map of dotted keys per language. `en.json` is the
+  source of truth; every other catalogue must keep the same keys and the same
+  `{placeholders}`.
+
+## Key conventions
+
+- Flat, lowercase, dot separated: `tooltip.copy`, `notify.screenshot_saved`,
+  `settings.group.shortcut`. Use `snake_case` inside a segment, never camelCase.
+- One key per sentence or label. Do not build sentences by concatenating
+  fragments; pass values through `{name}` placeholders instead.
+- Never translate the product name, tool ids, keyboard shortcut names
+  (`Ctrl+S`), file names or paths.
+- `settings.title` is the whole heading, brand included: `"{brand} settings"`
+  in English, `"Ajustes de {brand}"` in Spanish. The panel passes the styled
+  brand as the `{brand}` parameter so word order can change per language.
+- No plural forms yet. If a string needs one, add `_one`/`_other` keys and
+  extend `lib/i18n.js` at the same time.
+
+## Language resolution
+
+`I18n` builds the language in this order:
+
+1. `Config.language` when it names a catalogue in the manifest (the settings
+   panel writes it; `""` means automatic).
+2. `RISHOT_LANG`.
+3. `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`, in that order.
+4. English.
+
+A regional tag falls back to its language (`es_AR` uses `es` when there is no
+`es_AR.json`). An unknown locale falls back to English.
+
+## Adding a language
+
+1. Copy `en.json` to `<code>.json` and translate the values, keeping keys and
+   placeholders untouched.
+2. Add `{ "code": "<code>", "name": "<endonym>" }` to `languages.json` (use the
+   language's own name, e.g. `Español`).
+3. Run `sh src/lib/run-tests.sh`; `translations.test.mjs` checks JSON validity,
+   key parity, placeholder parity, duplicate keys and the manifest.
+4. The launcher and the desktop entry only ship `en` and `es` today. For a new
+   one, extend `msg_lang` in `bin/rishot`, add a `<code>:<key>` branch per
+   message plus its `usage()` block, and add `Comment[<code>]` to
+   `rishot.desktop`.
+
+## Launcher and desktop entry
+
+`bin/rishot` prints its usage and argument errors before it resolves the config
+dir, and even when none exists, so it cannot read `src/i18n/*.json`. Its
+messages live in the script itself, in English and Spanish, and pick one with
+the same environment precedence as the overlay (`RISHOT_LANG`, then `LANGUAGE`,
+`LC_ALL`, `LC_MESSAGES`, `LANG`, then English); unlike the overlay it cannot see
+`Config.language`. Add a translation as an `es:<key>` branch next to the
+`*:<key>` fallback; `src/lib/cli-i18n.test.mjs` fails when the two sets drift
+apart.
+
+`rishot.desktop` uses the freedesktop `Comment[es]` key and keeps `Comment=` as
+the English default, so the launcher entry is localised without a build step.
+
+## Trying a translation
+
+```sh
+RISHOT_LANG=es bin/rishot
+RISHOT_LANG=es qs -p src   # run the config in place during development
+```
+
+Missing keys fall back to English and are logged once with
+`rishot: missing translation key: <key>`.
