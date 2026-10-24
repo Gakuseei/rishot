@@ -270,6 +270,34 @@ Item {
         }
     }
 
+    /** Pill button used by the language chooser. */
+    component ChoiceButton: Rectangle {
+        id: cb
+        property string label: ""
+        property bool checked: false
+        signal clicked()
+
+        implicitHeight: 28
+        radius: 6
+        implicitWidth: cbLabel.implicitWidth + 22
+        color: cb.checked ? panel.vermilion
+            : (cbHover.hovered ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.06))
+        border.color: cb.checked ? panel.vermilion : panel.glassBorder
+        border.width: 1
+
+        Text {
+            id: cbLabel
+            anchors.centerIn: parent
+            text: cb.label
+            color: cb.checked ? Theme.white : panel.idle
+            font.family: Theme.monoFamily
+            font.pixelSize: 12
+        }
+
+        HoverHandler { id: cbHover }
+        TapHandler { onTapped: cb.clicked() }
+    }
+
     Rectangle {
         id: card
         width: parent.width
@@ -303,7 +331,7 @@ Item {
                     Layout.preferredHeight: 18
                 }
                 Text {
-                    text: '<font color="#e0563b">rishot</font> settings'
+                    text: '<font color="#e0563b">rishot</font> ' + I18n.tr("settings.title")
                     textFormat: Text.StyledText
                     color: Theme.white
                     font.family: Theme.sansFamily
@@ -313,12 +341,12 @@ Item {
                 Item { Layout.fillWidth: true }
             }
 
-            GroupLabel { text: "Effects" }
+            GroupLabel { text: I18n.tr("settings.group.effects") }
 
             Section {
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: "Pixelate" }
+                    Label { text: I18n.tr("settings.pixelate") }
                     Item { Layout.fillWidth: true }
                     Value { text: Config.mosaicFactor }
                 }
@@ -334,7 +362,7 @@ Item {
             Section {
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: "Blur" }
+                    Label { text: I18n.tr("settings.blur") }
                     Item { Layout.fillWidth: true }
                     Value { text: Config.blurRadius }
                 }
@@ -350,7 +378,7 @@ Item {
             Section {
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: "Zoom" }
+                    Label { text: I18n.tr("settings.zoom") }
                     Item { Layout.fillWidth: true }
                     Value { text: "×" + Config.zoomFactor.toFixed(1) }
                 }
@@ -365,11 +393,11 @@ Item {
 
             Divider {}
 
-            GroupLabel { text: "Saving" }
+            GroupLabel { text: I18n.tr("settings.group.saving") }
 
             RowLayout {
                 Layout.fillWidth: true
-                Label { text: "Keep a copy on disk" }
+                Label { text: I18n.tr("settings.keep_copy") }
                 Item { Layout.fillWidth: true }
                 Toggle {
                     checked: Config.copyToDisk
@@ -379,7 +407,7 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Label { text: "Save without dialog" }
+                Label { text: I18n.tr("settings.skip_dialog") }
                 Item { Layout.fillWidth: true }
                 Toggle {
                     checked: Config.skipSaveDialog
@@ -413,7 +441,7 @@ Item {
                     Text {
                         id: pickLabel
                         anchors.centerIn: parent
-                        text: "Choose…"
+                        text: I18n.tr("settings.choose")
                         color: panel.idle
                         font.family: Theme.monoFamily
                         font.pixelSize: 12
@@ -426,7 +454,7 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Label { text: "Copy to clipboard on save" }
+                Label { text: I18n.tr("settings.copy_on_save") }
                 Item { Layout.fillWidth: true }
                 Toggle {
                     checked: Config.copyOnSave
@@ -436,7 +464,30 @@ Item {
 
             Divider {}
 
-            GroupLabel { text: "Shortcut" }
+            GroupLabel { text: I18n.tr("settings.group.language") }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                ChoiceButton {
+                    label: I18n.tr("settings.language.auto")
+                    checked: Config.language === ""
+                    onClicked: { Config.language = ""; Config.save(); }
+                }
+                Repeater {
+                    model: I18n.languages
+                    ChoiceButton {
+                        required property var modelData
+                        label: modelData.name
+                        checked: Config.language === modelData.code
+                        onClicked: { Config.language = modelData.code; Config.save(); }
+                    }
+                }
+            }
+
+            Divider {}
+
+            GroupLabel { text: I18n.tr("settings.group.shortcut") }
 
             RowLayout {
                 visible: panel.isHyprland
@@ -466,7 +517,7 @@ Item {
                     Text {
                         id: recLabel
                         anchors.centerIn: parent
-                        text: panel.listening ? "Press a key…" : "Record"
+                        text: panel.listening ? I18n.tr("settings.press_key") : I18n.tr("settings.record")
                         color: panel.listening ? Theme.white : panel.idle
                         font.family: Theme.monoFamily
                         font.pixelSize: 13
@@ -484,15 +535,15 @@ Item {
 
             Hint {
                 visible: panel.isHyprland && panel.format === "lua"
-                text: 'add require("rishot") to hyprland.lua, then restart Hyprland to apply'
+                text: I18n.tr("settings.hint.lua")
             }
             Hint {
                 visible: panel.isHyprland && panel.format === "conf"
-                text: "add: source = ~/.config/hypr/rishot.conf"
+                text: I18n.tr("settings.hint.conf")
             }
             Hint {
                 visible: !panel.isHyprland
-                text: "bind 'rishot' to a key in your compositor config"
+                text: I18n.tr("settings.hint.other")
             }
         }
     }

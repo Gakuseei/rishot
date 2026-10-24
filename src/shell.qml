@@ -40,20 +40,23 @@ ShellRoot {
      * toolbar renders this list and the key handler derives toolKeys from it, so
      * the tooltips and Keys.onPressed shortcuts cannot drift apart.
      */
-    readonly property var toolDescriptors: [
-        { id: "select",   icon: "select",   label: "Select",    key: "v" },
-        { id: "rect",     icon: "rect",     label: "Rectangle", key: "r" },
-        { id: "ellipse",  icon: "ellipse",  label: "Ellipse",   key: "o" },
-        { id: "line",     icon: "line",     label: "Line",      key: "l" },
-        { id: "arrow",    icon: "arrow",    label: "Arrow",     key: "a" },
-        { id: "pen",      icon: "pen",      label: "Pen",       key: "p" },
-        { id: "marker",   icon: "marker",   label: "Marker",    key: "h" },
-        { id: "step",     icon: "step",     label: "Step",      key: "n" },
-        { id: "text",     icon: "text",     label: "Text",      key: "t" },
-        { id: "blur",     icon: "blur",     label: "Blur",      key: "b" },
-        { id: "pixelate", icon: "pixelate", label: "Pixelate",  key: "x" },
-        { id: "zoom",     icon: "zoom",     label: "Zoom",      key: "z" }
-    ]
+    readonly property var toolDescriptors: {
+        I18n.revision;
+        return [
+            { id: "select",   icon: "select",   label: I18n.tr("tool.select"),   key: "v" },
+            { id: "rect",     icon: "rect",     label: I18n.tr("tool.rect"),     key: "r" },
+            { id: "ellipse",  icon: "ellipse",  label: I18n.tr("tool.ellipse"),  key: "o" },
+            { id: "line",     icon: "line",     label: I18n.tr("tool.line"),     key: "l" },
+            { id: "arrow",    icon: "arrow",    label: I18n.tr("tool.arrow"),    key: "a" },
+            { id: "pen",      icon: "pen",      label: I18n.tr("tool.pen"),      key: "p" },
+            { id: "marker",   icon: "marker",   label: I18n.tr("tool.marker"),   key: "h" },
+            { id: "step",     icon: "step",     label: I18n.tr("tool.step"),     key: "n" },
+            { id: "text",     icon: "text",     label: I18n.tr("tool.text"),     key: "t" },
+            { id: "blur",     icon: "blur",     label: I18n.tr("tool.blur"),     key: "b" },
+            { id: "pixelate", icon: "pixelate", label: I18n.tr("tool.pixelate"), key: "x" },
+            { id: "zoom",     icon: "zoom",     label: I18n.tr("tool.zoom"),     key: "z" }
+        ];
+    }
     readonly property var toolKeys: {
         var m = {};
         for (var i = 0; i < toolDescriptors.length; i++)
@@ -594,11 +597,12 @@ ShellRoot {
         function send(summary, body, isError, openPath) {
             command = ["setsid", "-f", "sh", "-c",
                 "exec 9>&-; command -v notify-send >/dev/null 2>&1 || exit 0; "
-                + "if [ -n \"$5\" ]; then "
-                + "act=$(notify-send -a rishot -i \"$1\" -u \"$2\" -A \"open=Open\" -- \"$3\" \"$4\"); "
-                + "[ \"$act\" = open ] && xdg-open \"$5\"; "
+                + "if [ -n \"$6\" ]; then "
+                + "act=$(notify-send -a rishot -i \"$1\" -u \"$2\" -A \"open=$5\" -- \"$3\" \"$4\"); "
+                + "[ \"$act\" = open ] && xdg-open \"$6\"; "
                 + "else notify-send -a rishot -i \"$1\" -u \"$2\" -- \"$3\" \"$4\"; fi",
-                "_", root.iconPath, isError ? "critical" : "normal", summary, body, openPath];
+                "_", root.iconPath, isError ? "critical" : "normal", summary, body,
+                I18n.tr("notify.open_action"), openPath];
             running = true;
         }
         onExited: () => Qt.quit()
@@ -616,7 +620,7 @@ ShellRoot {
         var grab = function () {
             grabTo(target, function (ok) {
                 if (ok) copyProc.run(target, keep);
-                else root.finish("Capture failed", "", true, "");
+                else root.finish(I18n.tr("notify.capture_failed"), "", true, "");
             });
         };
         if (keep) mkdirProc.run(root.effectiveSaveDir, grab);
@@ -627,7 +631,7 @@ ShellRoot {
         var auto = root.defaultPath;
         mkdirProc.run(root.effectiveSaveDir, function () {
             grabTo(auto, function (ok) {
-                if (!ok) { root.finish("Capture failed", "", true, ""); return; }
+                if (!ok) { root.finish(I18n.tr("notify.capture_failed"), "", true, ""); return; }
                 root.savedAuto = auto;
                 if (Config.skipSaveDialog) { root.afterSave(auto); return; }
                 root.dialogMode = true;
@@ -642,14 +646,14 @@ ShellRoot {
      */
     function afterSave(path) {
         if (Config.copyOnSave) saveCopyProc.run(path);
-        else root.finish("Screenshot saved", root.pretty(path), false, path);
+        else root.finish(I18n.tr("notify.screenshot_saved"), root.pretty(path), false, path);
     }
 
     function doOcr() {
         var tmp = root.tmpDir + "/rishot-ocr.png";
         grabTo(tmp, function (ok) {
             if (ok) ocrProc.run(tmp);
-            else root.finish("Capture failed", "", true, "");
+            else root.finish(I18n.tr("notify.capture_failed"), "", true, "");
         });
     }
 
@@ -657,7 +661,7 @@ ShellRoot {
         var tmp = root.tmpDir + "/rishot-qr.png";
         grabTo(tmp, function (ok) {
             if (ok) qrProc.run(tmp);
-            else root.finish("Capture failed", "", true, "");
+            else root.finish(I18n.tr("notify.capture_failed"), "", true, "");
         });
     }
 
@@ -665,7 +669,7 @@ ShellRoot {
         var tmp = root.tmpDir + "/rishot-upload.png";
         grabTo(tmp, function (ok) {
             if (ok) uploadProc.run(tmp);
-            else root.finish("Capture failed", "", true, "");
+            else root.finish(I18n.tr("notify.capture_failed"), "", true, "");
         });
     }
 
@@ -704,7 +708,7 @@ ShellRoot {
             command = ["sh", "-c", "exec 9>&-; wl-copy --type image/png < \"$1\"", "_", path];
             running = true;
         }
-        onExited: () => root.finish("Screenshot saved", root.pretty(p), false, p)
+        onExited: () => root.finish(I18n.tr("notify.screenshot_saved"), root.pretty(p), false, p)
     }
 
     /**
@@ -747,9 +751,9 @@ ShellRoot {
         }
         onExited: (code) => {
             console.log("rishot: wl-copy exit " + code);
-            if (code !== 0) { root.finish("Copy failed", "", true, ""); return; }
-            if (keep) root.finish("Screenshot copied", root.pretty(file), false, file);
-            else root.finish("Copied to clipboard", "", false, "");
+            if (code !== 0) { root.finish(I18n.tr("notify.copy_failed"), "", true, ""); return; }
+            if (keep) root.finish(I18n.tr("notify.screenshot_copied"), root.pretty(file), false, file);
+            else root.finish(I18n.tr("notify.copied"), "", false, "");
         }
     }
 
@@ -772,11 +776,13 @@ ShellRoot {
                 + "if [ -n \"$url\" ] && [ \"${url#http}\" != \"$url\" ]; then "
                 + "printf %s \"$url\" | wl-copy --type 'text/plain;charset=utf-8'; "
                 + "command -v notify-send >/dev/null 2>&1 || exit 0; "
-                + "act=$(notify-send -a rishot -i \"$3\" -u normal -A \"copy=Copy link\" 'Link copied' \"$url\"); "
+                + "act=$(notify-send -a rishot -i \"$3\" -u normal -A \"copy=$6\" \"$4\" \"$url\"); "
                 + "[ \"$act\" = copy ] && printf %s \"$url\" | wl-copy --type 'text/plain;charset=utf-8'; "
                 + "else command -v notify-send >/dev/null 2>&1 && "
-                + "notify-send -a rishot -i \"$3\" -u critical rishot 'Upload failed'; fi",
-                "_", file, root.uploadEndpoint, root.iconPath];
+                + "notify-send -a rishot -i \"$3\" -u critical rishot \"$5\"; fi",
+                "_", file, root.uploadEndpoint, root.iconPath,
+                I18n.tr("notify.upload_link_copied"), I18n.tr("notify.upload_failed"),
+                I18n.tr("notify.copy_link_action")];
             running = true;
         }
         onExited: () => Qt.quit()
@@ -816,10 +822,10 @@ ShellRoot {
                 return;
             }
             if (code === 127)
-                root.finish("rishot could not capture the screen",
-                    "no screen-grab tool available; re-run the rishot installer to set it up", true, "");
+                root.finish(I18n.tr("notify.no_capture_tool"),
+                    I18n.tr("notify.no_capture_tool_body"), true, "");
             else
-                root.finish("Capture failed", "screen grab exited " + code, true, "");
+                root.finish(I18n.tr("notify.capture_failed"), I18n.tr("notify.grab_exited", { code: code }), true, "");
         }
     }
 
@@ -877,8 +883,8 @@ ShellRoot {
         onTriggered: {
             if (root.framePainted) return;
             console.error("rishot: no frame rendered 15s after launch, graphics init failed, giving up");
-            root.finish("rishot could not draw its overlay",
-                "graphics init failed, likely GPU memory pressure; press the key again", true, "");
+            root.finish(I18n.tr("notify.no_overlay"),
+                I18n.tr("notify.no_overlay_body"), true, "");
             quitFallback.start();
         }
     }
@@ -929,9 +935,9 @@ ShellRoot {
             running = true;
         }
         onExited: (code) => {
-            if (code === 3) root.finish("No text found", "", true, "");
-            else if (code !== 0) root.finish("OCR failed", "", true, "");
-            else root.finish("Text copied", ocrOut.text.trim().slice(0, 80), false, "");
+            if (code === 3) root.finish(I18n.tr("notify.no_text"), "", true, "");
+            else if (code !== 0) root.finish(I18n.tr("notify.ocr_failed"), "", true, "");
+            else root.finish(I18n.tr("notify.text_copied"), ocrOut.text.trim().slice(0, 80), false, "");
         }
     }
 
@@ -954,9 +960,9 @@ ShellRoot {
             running = true;
         }
         onExited: (code) => {
-            if (code === 3) root.finish("No QR code found", "", true, "");
-            else if (code !== 0) root.finish("QR read failed", "", true, "");
-            else root.finish("QR copied", qrOut.text.trim().slice(0, 80), false, "");
+            if (code === 3) root.finish(I18n.tr("notify.no_qr"), "", true, "");
+            else if (code !== 0) root.finish(I18n.tr("notify.qr_failed"), "", true, "");
+            else root.finish(I18n.tr("notify.qr_copied"), qrOut.text.trim().slice(0, 80), false, "");
         }
     }
 

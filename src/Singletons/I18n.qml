@@ -54,14 +54,10 @@ Singleton {
         return Lib.resolveLocale(environment, available);
     }
 
-    readonly property var fallbackCatalog: {
-        revision;
-        return parse(fallbackView, "en.json");
-    }
-    readonly property var catalog: {
-        revision;
-        return lang === Lib.FALLBACK_LOCALE ? fallbackCatalog : parse(activeView, lang + ".json");
-    }
+    readonly property var fallbackCatalog: parse(fallbackView, "en.json")
+    readonly property var catalog: lang === Lib.FALLBACK_LOCALE
+        ? fallbackCatalog
+        : parse(activeView, lang + ".json")
 
     /**
      * Looks a key up in the active catalogue, then English, then the key

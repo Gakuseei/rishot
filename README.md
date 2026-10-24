@@ -63,7 +63,7 @@ Quickshell is in the official repos on Arch (extra), Fedora 44+, Void, and Debia
 - Copy every QR code and barcode in a shot (`Ctrl+R`, needs `zbar`)
 - Skip the editor: `rishot --clipboard` copies the shot, `rishot --raw` writes the PNG to stdout, `rishot --text` and `rishot --qr` copy and print the text or codes
 - Save through a dialog or straight into a folder you pick, optionally copying to the clipboard at the same time
-- Settings panel: pixelate coarseness, blur strength, zoom factor, save options, key rebind
+- Settings panel: pixelate coarseness, blur strength, zoom factor, save options, key rebind, interface language
 
 ## Compositors
 
@@ -120,6 +120,7 @@ The settings panel writes `~/.config/rishot/config.json` (or `$XDG_CONFIG_HOME/r
   "copyOnSave": false,
   "skipSaveDialog": false,
   "saveDir": "",
+  "language": "",
   "toolStyle": {
     "rect": { "color": "#e0563b", "width": 4, "filled": false }
   }
@@ -133,6 +134,7 @@ The settings panel writes `~/.config/rishot/config.json` (or `$XDG_CONFIG_HOME/r
 - `copyOnSave`: save also puts the shot on the clipboard
 - `skipSaveDialog`: save goes straight into the save folder without asking
 - `saveDir`: save folder; empty means `$RISHOT_SAVEDIR`, else `Screenshots` inside your Pictures folder
+- `language`: interface catalogue, `en` or `es`; empty follows the system locale and `RISHOT_LANG`
 - `toolStyle`: colour, width (1 to 20) and fill per tool. Tool ids: `rect`, `ellipse`, `line`, `arrow`, `pen`, `marker`, `step`, `text`. `filled` only affects `rect` and `ellipse`; the marker always draws yellow, so only its width counts. A tool without an entry starts at `#e0563b`, width 4, outline.
 
 </details>
@@ -140,6 +142,7 @@ The settings panel writes `~/.config/rishot/config.json` (or `$XDG_CONFIG_HOME/r
 <details><summary>Environment variables</summary>
 
 - `RISHOT_CONFIG_DIR`: the Quickshell config dir (the one holding `shell.qml`)
+- `RISHOT_LANG`: force the interface language (`en`, `es`); the settings panel choice wins over it
 - `RISHOT_SAVEDIR`: the auto-save directory
 - `RISHOT_CAPTURE`: force the capture backend, `screencopy` or `image` (otherwise picked per compositor)
 - `RISHOT_UPLOAD`: the upload endpoint (curl form-post target)
