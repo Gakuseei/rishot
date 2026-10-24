@@ -6,9 +6,10 @@
 
 set -eu
 
-# The launcher ships as a single file (the AUR package installs only bin/rishot),
-# so its messages cannot come from src/i18n/*.json. They live here in both
-# languages and pick one with the same precedence as the overlay.
+# The launcher prints its usage and argument errors before it resolves the
+# config dir, and even when none exists, so it cannot read src/i18n/*.json.
+# Its messages live here in both languages and pick one with the same
+# environment precedence as the overlay.
 msg_lang() {
 	for _src in "$@"; do
 		[ -n "$_src" ] || continue
@@ -18,7 +19,7 @@ msg_lang() {
 			if [ "$_cand" = "$_rest" ]; then _rest=""; else _rest=${_rest#*:}; fi
 			_cand=${_cand%%@*}
 			_cand=${_cand%%.*}
-			_cand=$(printf '%s' "$_cand" | tr '[:upper:]-' '[:lower:]_')
+			_cand=$(printf '%s' "$_cand" | tr -d '[:space:]' | tr '[:upper:]-' '[:lower:]_')
 			case "$_cand" in
 				es | es_*) printf 'es'; return 0 ;;
 				en | en_*) printf 'en'; return 0 ;;
@@ -35,8 +36,8 @@ msg() {
 	case "$LANG_CODE:$1" in
 	es:unknown_argument) printf 'argumento desconocido: %s' "$2" ;;
 	*:unknown_argument) printf 'unknown argument: %s' "$2" ;;
-	es:needs_tool) printf -- '--%s necesita %s' "$2" "$3" ;;
-	*:needs_tool) printf -- '--%s needs %s' "$2" "$3" ;;
+	es:needs_tool) printf '%s necesita %s' "--$2" "$3" ;;
+	*:needs_tool) printf '%s needs %s' "--$2" "$3" ;;
 	es:no_config_dir) printf 'no se pudo localizar el directorio de configuración (define RISHOT_CONFIG_DIR)' ;;
 	*:no_config_dir) printf 'could not locate the config dir (set RISHOT_CONFIG_DIR)' ;;
 	es:no_qs) printf "'qs' (quickshell) no está en PATH" ;;
@@ -71,23 +72,23 @@ rishot - captura de pantalla + anotación
 uso: rishot [modo] [--clipboard | --raw | --text | --qr]
 
 modos:
-  (ninguno), region   arrastra una región, o haz clic en una ventana o en el escritorio para capturar esa zona (predeterminado)
-  monitor             haz clic en un monitor para capturar la salida completa
+  (ninguno), region    arrastra una región, o haz clic en una ventana o en el escritorio para capturar esa zona (predeterminado)
+  monitor              haz clic en un monitor para capturar la salida completa
 
 opciones:
-  -c, --clipboard  omite el editor y copia el PNG al portapapeles
-  --raw            omite el editor y escribe el PNG en la salida estándar
-  --text           omite el editor, copia e imprime el texto de la captura (OCR)
-  --qr             omite el editor, copia e imprime todos los códigos QR y de barras
-  -h, --help       muestra esta ayuda
+  -c, --clipboard      omite el editor y copia el PNG al portapapeles
+  --raw                omite el editor y escribe el PNG en la salida estándar
+  --text               omite el editor, copia e imprime el texto de la captura (OCR)
+  --qr                 omite el editor, copia e imprime todos los códigos QR y de barras
+  -h, --help           muestra esta ayuda
 
 Las cuatro opciones terminan con 1 cuando la captura se cancela o falla; --text y --qr
 también cuando la captura no tiene texto ni códigos.
 
 entorno:
-  RISHOT_CONFIG_DIR  cambia el directorio de configuración de Quickshell (debe contener shell.qml)
-  RISHOT_UPLOAD      cambia el destino de subida (destino https form-post)
-  RISHOT_SAVEDIR     cambia el directorio de guardado automático
+  RISHOT_CONFIG_DIR    cambia el directorio de configuración de Quickshell (debe contener shell.qml)
+  RISHOT_UPLOAD        cambia el destino de subida (objetivo https form-post)
+  RISHOT_SAVEDIR       cambia el directorio de guardado automático
   RISHOT_KEYBIND_FILE  escribe aquí el atajo reasignado en la aplicación en vez de autodetectarlo
 EOF
 	else

@@ -48,15 +48,21 @@ A regional tag falls back to its language (`es_AR` uses `es` when there is no
    language's own name, e.g. `Español`).
 3. Run `sh src/lib/run-tests.sh`; `translations.test.mjs` checks JSON validity,
    key parity, placeholder parity, duplicate keys and the manifest.
+4. The launcher and the desktop entry only ship `en` and `es` today. For a new
+   one, extend `msg_lang` in `bin/rishot`, add a `<code>:<key>` branch per
+   message plus its `usage()` block, and add `Comment[<code>]` to
+   `rishot.desktop`.
 
 ## Launcher and desktop entry
 
-`bin/rishot` ships as a single file (the AUR package installs only that file),
-so it cannot read `src/i18n/*.json`. Its messages live in the script itself, in
-English and Spanish, and pick one with the same precedence as the overlay
-(`RISHOT_LANG`, then `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`, then English).
-Add a translation as an `es:<key>` branch next to the `*:<key>` fallback;
-`src/lib/cli-i18n.test.mjs` fails when the two sets drift apart.
+`bin/rishot` prints its usage and argument errors before it resolves the config
+dir, and even when none exists, so it cannot read `src/i18n/*.json`. Its
+messages live in the script itself, in English and Spanish, and pick one with
+the same environment precedence as the overlay (`RISHOT_LANG`, then `LANGUAGE`,
+`LC_ALL`, `LC_MESSAGES`, `LANG`, then English); unlike the overlay it cannot see
+`Config.language`. Add a translation as an `es:<key>` branch next to the
+`*:<key>` fallback; `src/lib/cli-i18n.test.mjs` fails when the two sets drift
+apart.
 
 `rishot.desktop` uses the freedesktop `Comment[es]` key and keeps `Comment=` as
 the English default, so the launcher entry is localised without a build step.
