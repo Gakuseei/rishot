@@ -40,7 +40,7 @@ fi
 [ -z "\${RISHOT_OUTFILE:-}" ] || printf 'PNGDATA' >"$RISHOT_OUTFILE"
 case "\${STUB_QS:-}" in
 	fail) exit 3 ;;
-	term) kill -TERM "$PPID"; sleep 0.2 ;;
+	term) kill -TERM "$PPID"; sleep 5 </dev/null >/dev/null 2>&1; echo "qs survived" >>"$STUB_LOG" ;;
 esac
 exit 0`,
     grim: `
@@ -160,10 +160,16 @@ check(frozenOf(launch({ env: { XDG_CURRENT_DESKTOP: "KDE" } })) === "",
     check(r.status === 3, "qs failure status is passed through (" + r.status + ")");
     check(r.left.length === 0, "scratch dir is removed when qs fails");
 }
-{
-    const r = launch({ env: { STUB_QS: "term" } });
-    check(r.status === 143, "SIGTERM to the launcher exits 143 (" + r.status + ")");
-    check(r.left.length === 0, "scratch dir is removed after SIGTERM");
+// The stub qs signals the launcher, then would linger 5s: the launcher must stop it.
+for (const args of [[], ["--raw"]]) {
+    const name = args.length ? args.join(" ") : "editor mode";
+    const t0 = Date.now();
+    const r = launch({ args, env: { STUB_QS: "term" } });
+    const ms = Date.now() - t0;
+    check(r.status === 143, name + ": SIGTERM to the launcher exits 143 (" + r.status + ")");
+    check(!r.lines.includes("qs survived") && ms < 3000,
+        name + ": SIGTERM to the launcher is forwarded to qs (" + ms + " ms)");
+    check(r.left.length === 0, name + ": scratch dir is removed after SIGTERM");
 }
 
 // A second press while one instance holds the lock must not grab the screen.

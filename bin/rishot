@@ -218,24 +218,43 @@ if [ -z "${XDG_PICTURES_DIR:-}" ] && command -v xdg-user-dir >/dev/null 2>&1; th
 	[ -n "$pics" ] && [ "$pics" != "${HOME:-}" ] && export XDG_PICTURES_DIR="$pics"
 fi
 
-# The pre-capture and the direct-output PNG share one private scratch dir. The
-# signal traps turn a kill into a normal exit so the EXIT trap still cleans up.
+# qs runs as a tracked background child. A shell acts on a trapped signal only
+# after its foreground child exits, so a kill aimed at the launcher would leave
+# the overlay up and the lock held; wait, by contrast, returns to the trap at
+# once. stop_qs always sends TERM because a background child starts with SIGINT
+# ignored, and it reaps qs before the EXIT trap removes the files qs reads.
+qs_pid=""
+run_qs() {
+	"$@" &
+	qs_pid=$!
+	_rc=0
+	wait "$qs_pid" || _rc=$?
+	qs_pid=""
+	return "$_rc"
+}
+stop_qs() {
+	[ -n "$qs_pid" ] || return 0
+	kill -TERM "$qs_pid" 2>/dev/null || true
+	wait "$qs_pid" 2>/dev/null || true
+}
+
+# The pre-capture and the direct-output PNG share one private scratch dir.
 tmp=$(mktemp -d "$rundir/rishot.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
-trap 'exit 129' HUP
-trap 'exit 130' INT
-trap 'exit 143' TERM
+trap 'stop_qs; exit 129' HUP
+trap 'stop_qs; exit 130' INT
+trap 'stop_qs; exit 143' TERM
 
 frozen=""
 if precapture "$tmp/frozen.png"; then frozen="$tmp/frozen.png"; else frozen_width=""; fi
 
 if [ -z "$output" ]; then
-	env RISHOT_MODE="$mode" RISHOT_FROZEN_PNG="$frozen" RISHOT_FROZEN_WIDTH="$frozen_width" qs -p "$dir"
+	run_qs env RISHOT_MODE="$mode" RISHOT_FROZEN_PNG="$frozen" RISHOT_FROZEN_WIDTH="$frozen_width" qs -p "$dir"
 	exit
 fi
 
 out="$tmp/out.png"
-env RISHOT_MODE="$mode" RISHOT_FROZEN_PNG="$frozen" RISHOT_FROZEN_WIDTH="$frozen_width" RISHOT_OUTFILE="$out" qs -p "$dir" >&2 || true
+run_qs env RISHOT_MODE="$mode" RISHOT_FROZEN_PNG="$frozen" RISHOT_FROZEN_WIDTH="$frozen_width" RISHOT_OUTFILE="$out" qs -p "$dir" >&2 || true
 [ -s "$out" ] || { err cancelled; exit 1; }
 if [ "$output" = text ]; then
 	langs=$(tesseract --list-langs 2>/dev/null | tail -n +2 | grep -vx osd | paste -s -d+ -)

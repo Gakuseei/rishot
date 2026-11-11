@@ -12,6 +12,8 @@ Item {
     required property var screenData
     property string captureBackend: "screencopy"
     property real captureScale: 1
+    /** Logical top-left of the desktop, where the full-desktop PNG starts. */
+    property point captureOrigin: Qt.point(0, 0)
     property string frozenSource: ""
 
     /** Whichever frozen source is live, and its readiness, so the effects and
@@ -90,8 +92,8 @@ Item {
          * wlroots a ScreencopyView grabs this output directly. KWin speaks no
          * screencopy protocol, so there the shell hands us a full-desktop PNG
          * from spectacle and frozenPng shows this output's slice of it (the
-         * sourceClipRect in device pixels is the logical geometry times the
-         * capture scale). Only one is live per session; both fill the overlay,
+         * sourceClipRect in device pixels is the logical geometry, offset from
+         * the desktop's top-left, times the capture scale). Only one is live per session; both fill the overlay,
          * so blur, pixelate, zoom, loupe and export sample the same coordinates.
          */
         ScreencopyView {
@@ -108,10 +110,10 @@ Item {
             anchors.fill: parent
             visible: overlay.captureBackend === "image"
             source: overlay.captureBackend === "image" ? overlay.frozenSource : ""
-            sourceClipRect: Qt.rect(overlay.sx * overlay.captureScale,
-                                    overlay.sy * overlay.captureScale,
-                                    overlay.width * overlay.captureScale,
-                                    overlay.height * overlay.captureScale)
+            readonly property var clip: Coords.imageClip(
+                { x: overlay.sx, y: overlay.sy, width: overlay.width, height: overlay.height },
+                overlay.captureOrigin, overlay.captureScale)
+            sourceClipRect: Qt.rect(clip.x, clip.y, clip.w, clip.h)
             fillMode: Image.Stretch
             cache: false
             smooth: true

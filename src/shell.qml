@@ -213,14 +213,13 @@ ShellRoot {
         return onKde ? "image" : "screencopy";
     }
     property bool fellBack: false
+    /** Logical bounds of the whole desktop; a full-desktop PNG starts at its top-left. */
+    readonly property var desktopBounds: Coords.screensBounds(Quickshell.screens)
     readonly property real captureScale: {
+        /** The launcher measured its PNG: scale is pixels over the logical desktop width. */
+        if (frozenSource !== "" && frozenSource === launcherSource && desktopBounds.w > 0)
+            return launcherPngWidth / desktopBounds.w;
         var s = Quickshell.screens, m = 1;
-        if (frozenSource !== "" && frozenSource === launcherSource) {
-            /** The launcher measured its PNG: scale is pixels over the logical desktop width. */
-            var x0 = Infinity, x1 = -Infinity;
-            for (var j = 0; j < s.length; j++) { x0 = Math.min(x0, s[j].x); x1 = Math.max(x1, s[j].x + s[j].width); }
-            if (x1 > x0) return launcherPngWidth / (x1 - x0);
-        }
         for (var i = 0; i < s.length; i++) m = Math.max(m, s[i].devicePixelRatio || 1);
         return Math.ceil(m);
     }
@@ -1110,6 +1109,7 @@ ShellRoot {
                     screenData: win.modelData
                     captureBackend: root.captureBackend
                     captureScale: root.captureScale
+                    captureOrigin: Qt.point(root.desktopBounds.x, root.desktopBounds.y)
                     frozenSource: root.frozenSource
                     globalSel: root.globalSel
                     capturing: root.capturing
