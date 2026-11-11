@@ -208,18 +208,42 @@ ShellRoot {
      */
     property string captureBackend: {
         var ov = Quickshell.env("RISHOT_CAPTURE");
-        if (ov === "image" || ov === "spectacle") return "image";
         if (ov === "screencopy") return "screencopy";
+        if (ov === "image" || ov === "spectacle" || launcherPng !== "") return "image";
         return onKde ? "image" : "screencopy";
     }
     property bool fellBack: false
+    /** Logical bounds of the whole desktop; a full-desktop PNG starts at its top-left. */
+    /**
+     * Not a binding: it is taken when a full-desktop frame is grabbed (startup
+     * for the launcher's, grabProc.start for the overlay's own), so a monitor
+     * plugged or unplugged mid-session cannot re-map the frame it describes.
+     */
+    property var desktopBounds: ({ x: 0, y: 0, w: 0, h: 0 })
+    function snapshotBounds() { desktopBounds = Coords.screensBounds(Quickshell.screens); }
     readonly property real captureScale: {
+        /** The launcher measured its PNG: scale is pixels over the logical desktop width. */
+        if (frozenSource !== "" && frozenSource === launcherSource && desktopBounds.w > 0)
+            return launcherPngWidth / desktopBounds.w;
         var s = Quickshell.screens, m = 1;
         for (var i = 0; i < s.length; i++) m = Math.max(m, s[i].devicePixelRatio || 1);
         return Math.ceil(m);
     }
     readonly property string frozenPng: tmpDir + "/rishot-frozen.png"
-    property string frozenSource: ""
+    /**
+     * Full-desktop PNG bin/rishot grabbed before qs started (see precapture
+     * there), so hover UI the overlay would dismiss is still in it. The launcher
+     * owns and deletes the file and passes its pixel width, since grim renders
+     * at the largest fractional output scale, not the ceil the own grab assumes.
+     * Empty when it did not or could not grab, and an explicit
+     * RISHOT_CAPTURE=screencopy ignores it.
+     */
+    readonly property int launcherPngWidth: parseInt(Quickshell.env("RISHOT_FROZEN_WIDTH") || "0", 10) || 0
+    readonly property string launcherPng: Quickshell.env("RISHOT_CAPTURE") === "screencopy" || launcherPngWidth <= 0
+        ? "" : (Quickshell.env("RISHOT_FROZEN_PNG") || "")
+    readonly property string launcherSource: launcherPng === "" ? ""
+        : "file://" + launcherPng.split("/").map(encodeURIComponent).join("/")
+    property string frozenSource: launcherSource
 
     /** Absolute path to the bundled torii icon, passed to notify-send -i. */
     readonly property string iconPath: {
@@ -805,6 +829,7 @@ ShellRoot {
     Process {
         id: grabProc
         function start() {
+            root.snapshotBounds();
             var inner =
                 "have() { command -v \"$1\" >/dev/null 2>&1; }; "
                 + "have spectacle || have grim || exit 127; "
@@ -859,7 +884,9 @@ ShellRoot {
     }
 
     Component.onCompleted: {
+        root.snapshotBounds();
         windowProvider.refresh();
+        if (root.frozenSource !== "") return;
         if (root.captureBackend === "image") grabProc.start();
         else kwinProbe.running = true;
     }
@@ -1090,6 +1117,7 @@ ShellRoot {
                     screenData: win.modelData
                     captureBackend: root.captureBackend
                     captureScale: root.captureScale
+                    captureOrigin: Qt.point(root.desktopBounds.x, root.desktopBounds.y)
                     frozenSource: root.frozenSource
                     globalSel: root.globalSel
                     capturing: root.capturing
@@ -1113,9 +1141,11 @@ ShellRoot {
                     onResizeMoved: (gx, gy) => root.updateResize(gx, gy)
                     onResizeEnded: root.endResize()
                     onCaptureTimedOut: {
-                        if (root.captureBackend === "screencopy" && !root.fellBack) {
+                        /** An unreadable launcher PNG unmaps the overlays and grabs afresh, once. */
+                        if (!root.fellBack && (root.captureBackend === "screencopy" || root.launcherPng !== "")) {
                             root.fellBack = true;
-                            console.warn("rishot: no screencopy frame, falling back to an external grab");
+                            console.warn("rishot: no usable frame, falling back to an external grab");
+                            if (root.launcherPng !== "") root.frozenSource = "";
                             grabProc.start();
                             return;
                         }

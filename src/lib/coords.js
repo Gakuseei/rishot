@@ -54,6 +54,21 @@ function screensBounds(screens) {
     return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
 
+/**
+ * Device-pixel rect of one screen inside a full-desktop image. grim and
+ * spectacle start that image at the desktop's top-left, which is not 0,0 once
+ * an output sits left of or above another, so screen coordinates are taken
+ * relative to origin before scaling.
+ */
+function imageClip(screen, origin, scale) {
+    return {
+        x: (screen.x - origin.x) * scale,
+        y: (screen.y - origin.y) * scale,
+        w: screen.width * scale,
+        h: screen.height * scale
+    };
+}
+
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { intersectRect, rectFromPoints, snapEdge, screensBounds };
+    module.exports = { intersectRect, rectFromPoints, snapEdge, screensBounds, imageClip };
 }

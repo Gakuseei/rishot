@@ -77,6 +77,8 @@ Quickshell is in the official repos on Arch (extra), Fedora 44+, Void, and Debia
 
 Capture works on any wlroots or `ext-image-copy` compositor. KDE is the exception: KWin speaks no screencopy protocol, so there rishot grabs the desktop through `spectacle` instead (the installer pulls it in on KDE). Window-click, grabbing one window's frame, needs the compositor to tell rishot where each window sits. Hyprland and Sway do, Niri reports it for floating windows only, and KWin reports none, so on KDE you drag a region or grab a monitor.
 
+Showing the overlay moves focus off the app underneath, which closes its tooltips, hover highlights and open menus. So the launcher freezes the desktop first: before Quickshell maps anything it grabs the whole screen with `grim` (Hyprland, Sway, Niri, river, Wayfire, COSMIC and any other compositor `grim` can capture), or with `spectacle` on KDE, into a private temp dir it deletes on exit, and the overlay edits that frame. When the tool is missing or the grab fails, as on a compositor `grim` cannot capture, rishot captures from inside the overlay as it always has. `RISHOT_CAPTURE=screencopy` turns the pre-capture off.
+
 ## Keybinding
 
 rishot does not grab a global hotkey. Bind it yourself:
@@ -101,7 +103,7 @@ All four exit 1 when the capture is cancelled or fails, `--text` and `--qr` also
 
 Required: `quickshell` (the `qs` binary), Qt 6 (declarative, svg, 5compat, wayland), `wl-clipboard`.
 
-Optional: `imagemagick` (multi-monitor stitch), `cliphist` (clip history), `curl` (upload), `kdialog` (save dialog and folder picker), `libnotify` (a desktop notification when a shot is copied, saved or uploaded), `tesseract` plus a language pack (OCR; reads with every installed language), `zbar` (QR codes and barcodes).
+Optional: `imagemagick` (multi-monitor stitch), `cliphist` (clip history), `curl` (upload), `kdialog` (save dialog and folder picker), `libnotify` (a desktop notification when a shot is copied, saved or uploaded), `grim` (freezes the screen before the overlay opens, so hover UI and open menus stay in the shot; also the fallback when screencopy hands back no frame), `tesseract` plus a language pack (OCR; reads with every installed language), `zbar` (QR codes and barcodes).
 
 On KDE: `spectacle`, which rishot captures through since KWin has no screencopy protocol. The installer pulls it in when it sees a KDE session.
 
@@ -144,7 +146,7 @@ The settings panel writes `~/.config/rishot/config.json` (or `$XDG_CONFIG_HOME/r
 - `RISHOT_CONFIG_DIR`: the Quickshell config dir (the one holding `shell.qml`)
 - `RISHOT_LANG`: force the interface language (`en`, `es`) for the overlay and the CLI messages; the settings panel choice overrides it inside the app
 - `RISHOT_SAVEDIR`: the auto-save directory
-- `RISHOT_CAPTURE`: force the capture backend, `screencopy` or `image` (otherwise picked per compositor)
+- `RISHOT_CAPTURE`: force the capture backend, `screencopy` or `image` (otherwise picked per compositor); `screencopy` also skips the pre-overlay grab
 - `RISHOT_UPLOAD`: the upload endpoint (curl form-post target)
 - `RISHOT_KEYBIND_FILE`: file the rebind line is written into, taken as given (written verbatim, so point it at a dedicated include file)
 
