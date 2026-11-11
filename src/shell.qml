@@ -214,7 +214,13 @@ ShellRoot {
     }
     property bool fellBack: false
     /** Logical bounds of the whole desktop; a full-desktop PNG starts at its top-left. */
-    readonly property var desktopBounds: Coords.screensBounds(Quickshell.screens)
+    /**
+     * Not a binding: it is taken when a full-desktop frame is grabbed (startup
+     * for the launcher's, grabProc.start for the overlay's own), so a monitor
+     * plugged or unplugged mid-session cannot re-map the frame it describes.
+     */
+    property var desktopBounds: ({ x: 0, y: 0, w: 0, h: 0 })
+    function snapshotBounds() { desktopBounds = Coords.screensBounds(Quickshell.screens); }
     readonly property real captureScale: {
         /** The launcher measured its PNG: scale is pixels over the logical desktop width. */
         if (frozenSource !== "" && frozenSource === launcherSource && desktopBounds.w > 0)
@@ -823,6 +829,7 @@ ShellRoot {
     Process {
         id: grabProc
         function start() {
+            root.snapshotBounds();
             var inner =
                 "have() { command -v \"$1\" >/dev/null 2>&1; }; "
                 + "have spectacle || have grim || exit 127; "
@@ -877,6 +884,7 @@ ShellRoot {
     }
 
     Component.onCompleted: {
+        root.snapshotBounds();
         windowProvider.refresh();
         if (root.frozenSource !== "") return;
         if (root.captureBackend === "image") grabProc.start();
