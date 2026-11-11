@@ -126,6 +126,35 @@ strip_ctl() {
 	LC_ALL=C tr -d '\000-\010\013-\037\177' | LC_ALL=C sed -e ':a' -e "s/$c1//" -e 'ta'
 }
 
+# Same Plasma markers as envKde in shell.qml.
+on_kde() {
+	case $(printf '%s:%s:%s' "${XDG_CURRENT_DESKTOP:-}" "${XDG_SESSION_DESKTOP:-}" "${DESKTOP_SESSION:-}" | tr '[:upper:]' '[:lower:]') in
+		*kde* | *plasma*) return 0 ;;
+	esac
+	[ -n "${KDE_FULL_SESSION:-}" ] || [ -n "${KDE_SESSION_VERSION:-}" ]
+}
+
+# precapture <file> grabs the whole desktop before qs maps a single surface.
+# Mapping the overlay moves pointer and keyboard focus off the app underneath,
+# which closes its tooltips, hover states and open menus before an in-overlay
+# grab can see them. The tools match grabProc in shell.qml. grim scales to the
+# largest fractional output scale, so the PNG's pixel width goes to the overlay
+# in frozen_width, which crops by it instead of guessing. Any failure returns 1,
+# and the overlay then captures the way it would have without this. Light PNG
+# compression (-l 1) cuts grim's time before the overlay shows by about 3x.
+precapture() {
+	[ "${RISHOT_CAPTURE:-}" != screencopy ] || return 1
+	if on_kde; then
+		command -v spectacle >/dev/null 2>&1 && spectacle -bnf -o "$1" >&2 9>&- || return 1
+	else
+		command -v grim >/dev/null 2>&1 && grim -l 1 "$1" >&2 9>&- || return 1
+	fi
+	[ -s "$1" ] || return 1
+	# The width is the big-endian word at byte 16 of a PNG, in its IHDR chunk.
+	frozen_width=$(od -An -tu1 -j16 -N4 "$1" | { read -r a b c d && echo $((a << 24 | b << 16 | c << 8 | d)); })
+	[ "${frozen_width:-0}" -gt 0 ] 2>/dev/null
+}
+
 mode=region
 output=""
 need=""
@@ -189,12 +218,24 @@ if [ -z "${XDG_PICTURES_DIR:-}" ] && command -v xdg-user-dir >/dev/null 2>&1; th
 	[ -n "$pics" ] && [ "$pics" != "${HOME:-}" ] && export XDG_PICTURES_DIR="$pics"
 fi
 
-if [ -z "$output" ]; then exec env RISHOT_MODE="$mode" qs -p "$dir"; fi
-
+# The pre-capture and the direct-output PNG share one private scratch dir. The
+# signal traps turn a kill into a normal exit so the EXIT trap still cleans up.
 tmp=$(mktemp -d "$rundir/rishot.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+frozen=""
+if precapture "$tmp/frozen.png"; then frozen="$tmp/frozen.png"; else frozen_width=""; fi
+
+if [ -z "$output" ]; then
+	env RISHOT_MODE="$mode" RISHOT_FROZEN_PNG="$frozen" RISHOT_FROZEN_WIDTH="$frozen_width" qs -p "$dir"
+	exit
+fi
+
 out="$tmp/out.png"
-env RISHOT_MODE="$mode" RISHOT_OUTFILE="$out" qs -p "$dir" >&2 || true
+env RISHOT_MODE="$mode" RISHOT_FROZEN_PNG="$frozen" RISHOT_FROZEN_WIDTH="$frozen_width" RISHOT_OUTFILE="$out" qs -p "$dir" >&2 || true
 [ -s "$out" ] || { err cancelled; exit 1; }
 if [ "$output" = text ]; then
 	langs=$(tesseract --list-langs 2>/dev/null | tail -n +2 | grep -vx osd | paste -s -d+ -)
