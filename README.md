@@ -144,7 +144,7 @@ The settings panel writes `~/.config/rishot/config.json` (or `$XDG_CONFIG_HOME/r
 - `RISHOT_CONFIG_DIR`: the Quickshell config dir (the one holding `shell.qml`)
 - `RISHOT_LANG`: force the interface language (`en`, `es`) for the overlay and the CLI messages; the settings panel choice overrides it inside the app
 - `RISHOT_SAVEDIR`: the auto-save directory
-- `RISHOT_CAPTURE`: force the capture backend, `screencopy` or `image` (otherwise picked per compositor)
+- `RISHOT_CAPTURE`: force the capture backend, `screencopy` or `image` (otherwise picked per compositor); `image` grabs the whole desktop with `grim` or `spectacle` before the overlay shows, so tooltips, hover states and open menus that lose focus stay in the shot
 - `RISHOT_UPLOAD`: the upload endpoint (curl form-post target)
 - `RISHOT_KEYBIND_FILE`: file the rebind line is written into, taken as given (written verbatim, so point it at a dedicated include file)
 

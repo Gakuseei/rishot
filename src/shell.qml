@@ -202,9 +202,9 @@ ShellRoot {
      * screencopy hands back an empty surface and any KWin session that detection
      * missed up front. kwinProbe can also flip it to "image" mid-startup the moment
      * the bus confirms KWin. RISHOT_CAPTURE forces a backend; the value is mutable
-     * so both fallbacks can switch it at runtime. captureScale is the grabbed PNG's
-     * scale, ceil of the largest output ratio, used to crop each output out of the
-     * full-desktop shot.
+     * so both fallbacks can switch it at runtime. Forcing "image" grabs before any
+     * overlay maps, so focus never leaves the app underneath and its tooltips,
+     * hover states and open menus stay in the shot on every compositor.
      */
     property string captureBackend: {
         var ov = Quickshell.env("RISHOT_CAPTURE");
@@ -213,7 +213,13 @@ ShellRoot {
         return onKde ? "image" : "screencopy";
     }
     property bool fellBack: false
+    /** Desktop bounds taken at grab time; the full-desktop PNG starts at their top-left. */
+    property var desktopBounds: ({ x: 0, y: 0, w: 0, h: 0 })
+    /** Pixel width of the grabbed PNG, read from its header by grabProc. */
+    property int frozenWidth: 0
+    /** Measured PNG width over the logical desktop width, else the ceil guess. */
     readonly property real captureScale: {
+        if (frozenWidth > 0 && desktopBounds.w > 0) return frozenWidth / desktopBounds.w;
         var s = Quickshell.screens, m = 1;
         for (var i = 0; i < s.length; i++) m = Math.max(m, s[i].devicePixelRatio || 1);
         return Math.ceil(m);
@@ -804,19 +810,27 @@ ShellRoot {
      */
     Process {
         id: grabProc
+        stdout: StdioCollector { id: grabOut }
         function start() {
+            root.desktopBounds = Coords.screensBounds(Quickshell.screens);
+            root.frozenWidth = 0;
             var inner =
                 "have() { command -v \"$1\" >/dev/null 2>&1; }; "
                 + "have spectacle || have grim || exit 127; "
                 + "shot_spectacle() { have spectacle && spectacle -bnf -o \"$1\" && [ -s \"$1\" ]; }; "
                 + "shot_grim() { have grim && grim \"$1\" && [ -s \"$1\" ]; }; "
                 + "if [ \"$2\" = kde ]; then shot_spectacle \"$1\" || shot_grim \"$1\"; "
-                + "else shot_grim \"$1\" || shot_spectacle \"$1\"; fi";
+                + "else shot_grim \"$1\" || shot_spectacle \"$1\"; fi "
+                + "&& od -An -tu1 -j16 -N4 \"$1\"";
             command = ["sh", "-c", inner, "_", root.frozenPng, root.onKde ? "kde" : "other"];
             running = true;
         }
         onExited: (code) => {
             if (code === 0) {
+                /** Bytes 16-19 of a PNG are its big-endian pixel width. */
+                var b = grabOut.text.trim().split(/\s+/).slice(-4).map(Number);
+                var w = b.length === 4 ? ((b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]) >>> 0 : 0;
+                root.frozenWidth = w > 0 ? w : 0;
                 root.captureBackend = "image";
                 root.frozenSource = "file://" + root.frozenPng;
                 return;
@@ -1090,6 +1104,7 @@ ShellRoot {
                     screenData: win.modelData
                     captureBackend: root.captureBackend
                     captureScale: root.captureScale
+                    captureOrigin: Qt.point(root.desktopBounds.x, root.desktopBounds.y)
                     frozenSource: root.frozenSource
                     globalSel: root.globalSel
                     capturing: root.capturing

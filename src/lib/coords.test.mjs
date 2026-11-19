@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { intersectRect, rectFromPoints, snapEdge, screensBounds } = require("./coords.js");
+const { intersectRect, rectFromPoints, snapEdge, screensBounds, imageClip } = require("./coords.js");
 
 let failed = 0;
 function eq(actual, expected, msg) {
@@ -33,6 +33,21 @@ eq(snapEdge({ x: 2559, y: 700 }, screens), { x: 2560, y: 700 }, "snapEdge reache
 eq(snapEdge({ x: 2560, y: 700 }, screens), { x: 2560, y: 700 }, "snapEdge leaves DP left edge alone");
 eq(snapEdge({ x: 1200, y: 600 }, screens), { x: 1200, y: 600 }, "snapEdge leaves interior points alone");
 eq(screensBounds(screens), { x: 0, y: 0, w: 5120, h: 1440 }, "screensBounds spans both monitors");
+
+// A full-desktop PNG starts at the desktop's top-left, so each screen's crop is
+// taken relative to it: the review case of two 1920 outputs at x=-1920 and x=0.
+const left = { x: -1920, y: 0, width: 1920, height: 1080 };
+const right = { x: 0, y: 0, width: 1920, height: 1080 };
+const neg = screensBounds([left, right]);
+eq(neg, { x: -1920, y: 0, w: 3840, h: 1080 }, "screensBounds keeps a negative origin");
+eq(imageClip(left, neg, 1), { x: 0, y: 0, w: 1920, h: 1080 }, "imageClip: left output is the PNG's left half");
+eq(imageClip(right, neg, 1), { x: 1920, y: 0, w: 1920, h: 1080 }, "imageClip: output at x=0 is the PNG's right half");
+const above = { x: 0, y: -1440, width: 2560, height: 1440 };
+const below = { x: 0, y: 0, width: 2560, height: 1440 };
+eq(imageClip(below, screensBounds([above, below]), 2), { x: 0, y: 2880, w: 5120, h: 2880 },
+    "imageClip: an output above shifts the one at y=0 down, at scale 2");
+eq(imageClip(dp, screensBounds(screens), 1.5), { x: 3840, y: 0, w: 3840, h: 2160 },
+    "imageClip: zero-origin layout is unchanged, fractional scale applies");
 
 if (failed > 0) {
     console.log("\n" + failed + " test(s) FAILED");
